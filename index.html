@@ -769,8 +769,11 @@ function render(){
       const decided=!!raid.finalTime;
       const accepted=decided && p.team && p.team!=='pool';
       const statusClass=decided ? (accepted?'accepted':'rejected') : '';
-      const statusText=decided ? (accepted?'（錄取）':'（未錄取）') : '';
-      return `<span class="member-chip ${statusClass}">Lv.${escapeHtml(p.level||'—')} ${escapeHtml(p.name)}${p.role?`｜${escapeHtml(p.role)}`:''}${statusText}</span>`;
+      const dragonTeam=accepted && raid.boss==='闇黑龍王' && Number(raid.raidSize)===12
+        ? `・第${String(p.team).replace('team','')}隊`
+        : '';
+      const statusText=decided ? (accepted?`（錄取${dragonTeam}）`:'（未錄取）') : '';
+      return `<span class="member-chip ${statusClass}">Lv.${escapeHtml(p.level||'—')}${escapeHtml(p.role||'')} | ${escapeHtml(p.name)}${statusText}</span>`;
     }).join('');
     const extra = raid.participants.length>10 ? `<span class="member-chip">+${raid.participants.length-10}</span>` : '';
     const assigned = raid.participants.filter(p=>p.team && p.team!=='pool').length;
@@ -1071,13 +1074,16 @@ function playerCard(p,raid){
   const decided=!!raid.finalTime;
   const accepted=decided && p.team && p.team!=='pool';
   const statusClass=decided ? (accepted?'accepted':'rejected') : '';
-  const statusText=decided ? (accepted?'（錄取）':'（未錄取）') : '';
+  const dragonTeam=accepted && raid.boss==='闇黑龍王' && Number(raid.raidSize)===12
+    ? `・第${String(p.team).replace('team','')}隊`
+    : '';
+  const statusText=decided ? (accepted?`（錄取${dragonTeam}）`:'（未錄取）') : '';
   return `<div class="player ${statusClass}" draggable="true" data-player="${p.id}">
     <div class="player-head">
-      <div class="player-name">${escapeHtml(p.name)}${statusText}</div>
+      <div class="player-name">Lv.${escapeHtml(p.level||'—')}${escapeHtml(p.role||'')} | ${escapeHtml(p.name)}${statusText}</div>
       <button type="button" class="player-remove" onclick="event.preventDefault();event.stopPropagation();removeParticipant('${p.id}')">刪除</button>
     </div>
-    <div class="player-sub">Lv.${escapeHtml(p.level||'—')} · ${escapeHtml(p.role||'未填職業')}${p.note?` · ${escapeHtml(p.note)}`:''}</div>
+    <div class="player-sub">${p.note?escapeHtml(p.note):''}</div>
     <div class="player-pref">可配合：${prefText||'—'}${raid.finalTime ? (accepted?' · ✓ 可打最終時間':' · ⚠ 不含最終時間') : ''}</div>
   </div>`;
 }
