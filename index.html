@@ -494,11 +494,12 @@
         </div>
         <div>
           <label>突襲規模</label>
-          <div class="codebox" id="raidSizeDisplay">6 人（1 隊）</div>
+          <div class="codebox" id="raidSizeDisplay" style="width:100%;height:44px;display:flex;align-items:center">6 人（1 隊）</div>
         </div>
         <div>
-          <label>強調文字</label>
+          <label>標題強調文字</label>
           <input id="highlightText" maxlength="40" placeholder="例：急徵１法師"
+                 style="width:100%;height:44px"
                  onchange="setHighlightText(this.value)"
                  onkeydown="if(event.key==='Enter'){this.blur();}">
         </div>
@@ -869,8 +870,8 @@ function render(){
 
       <div class="card-actions">
         <button class="btn primary small" onclick="openSignup('${raid.id}')">＋ 我要報名</button>
-        <button class="btn small" onclick="openSelf('${raid.id}')">修改 / 退出</button>
-        <button class="btn cyan small" onclick="openManageAuth('${raid.id}')">隊伍安排</button>
+        <button class="btn small" onclick="openSelf('${raid.id}')">我要退出</button>
+        <button class="btn cyan small" onclick="openManageAuth('${raid.id}')">隊伍管理</button>
         <button class="btn danger small" onclick="openDeleteAuth('${raid.id}')">刪除場次</button>
       </div>
     </article>`;
@@ -1160,7 +1161,7 @@ function requireManager(){
 
 function openManager(){
   const raid=getRaid(activeRaidId); if(!raid || !requireManager()) return;
-  document.getElementById('manageTitle').textContent=`${raid.boss}｜${raid.type} 隊伍安排`;
+  document.getElementById('manageTitle').textContent=`${raid.boss}｜${raid.type} 隊伍管理`;
   document.getElementById('manageSubtitle').textContent=`開場：${raid.owner}｜共 ${raid.participants.length} 人報名`;
   const ft=document.getElementById('finalTimeSelect');
   ft.innerHTML=`<option value="">尚未定案</option>`+raid.times.map((t,i)=>`<option value="${escapeHtml(t)}" ${raid.finalTime===t?'selected':''}>時間 ${i+1}｜${formatDateTime(t)}</option>`).join('');
