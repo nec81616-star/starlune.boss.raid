@@ -767,7 +767,7 @@ function render(){
     const counts = raid.times.map(t=>raid.participants.filter(p=>(p.preferences||[]).includes(t)).length);
     const chips = raid.participants.slice(0,10).map(p=>{
       const decided=!!raid.finalTime;
-      const accepted=decided && (p.preferences||[]).includes(raid.finalTime);
+      const accepted=decided && p.team && p.team!=='pool';
       const statusClass=decided ? (accepted?'accepted':'rejected') : '';
       const statusText=decided ? (accepted?'（錄取）':'（未錄取）') : '';
       return `<span class="member-chip ${statusClass}">Lv.${escapeHtml(p.level||'—')} ${escapeHtml(p.name)}${p.role?`｜${escapeHtml(p.role)}`:''}${statusText}</span>`;
@@ -1069,7 +1069,7 @@ async function setFinalTime(value){
 function playerCard(p,raid){
   const prefText=(p.preferences||[]).map(t=>'①②③'[raid.times.indexOf(t)]||'').join('');
   const decided=!!raid.finalTime;
-  const accepted=decided && (p.preferences||[]).includes(raid.finalTime);
+  const accepted=decided && p.team && p.team!=='pool';
   const statusClass=decided ? (accepted?'accepted':'rejected') : '';
   const statusText=decided ? (accepted?'（錄取）':'（未錄取）') : '';
   return `<div class="player ${statusClass}" draggable="true" data-player="${p.id}">
