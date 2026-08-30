@@ -471,6 +471,9 @@
           <input id="highlightText" maxlength="40" placeholder="例：急徵１法師"
                  onchange="setHighlightText(this.value)"
                  onkeydown="if(event.key==='Enter'){this.blur();}">
+          <label style="margin-top:12px">修改備註</label>
+          <textarea id="manageNote" maxlength="300" placeholder="修改場次備註"
+                    onchange="setRaidNote(this.value)"></textarea>
         </div>
         <div style="align-self:end">
           <button class="btn cyan" onclick="autoArrange()">依最終時間自動排隊</button>
@@ -1057,6 +1060,7 @@ function openManager(){
   raid.teamCount=effectiveTeamCount;
   document.getElementById('raidSizeDisplay').textContent=`${Number(raid.raidSize)===12 ? 12 : 6} 人（${effectiveTeamCount} 隊）`;
   document.getElementById('highlightText').value=raid.highlightText||'';
+  document.getElementById('manageNote').value=raid.note||'';
   renderBoard();
   openModal('manageModal');
 }
@@ -1078,6 +1082,20 @@ async function setHighlightText(value){
   }
   render();
   toast(raid.highlightText?'強調文字已更新。':'強調文字已清除。','good');
+}
+
+async function setRaidNote(value){
+  if(!requireManager()) return;
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  raid.note=String(value||'').trim().slice(0,300);
+  try{
+    await saveRaid(raid);
+  }catch(err){
+    console.error(err);
+    return toast('備註儲存失敗：'+err.message,'bad');
+  }
+  render();
+  toast('備註已更新。','good');
 }
 
 async function setFinalTime(value){
@@ -1193,6 +1211,11 @@ async function movePlayer(playerId,target){
   if(target!=='pool'){
     const current=raid.participants.filter(x=>x.team===target && x.id!==playerId).length;
     if(current >= (raid.teamCapacity||6)) return toast('這一隊已達人數上限。','bad');
+
+    if(raid.finalTime && !(p.preferences||[]).includes(raid.finalTime)){
+      const force=confirm(`「${p.name}」未勾選最終開打時間 ${formatDateTime(raid.finalTime)}。\n\n是否仍要強制安排進隊伍？`);
+      if(!force) return;
+    }
   }
   p.team=target;
   try{ await saveRaid(raid); }catch(err){ console.error(err); return toast('分隊儲存失敗：'+err.message,'bad'); }
