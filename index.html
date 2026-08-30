@@ -119,6 +119,18 @@
   .member-preview{margin-top:14px;color:var(--muted);font-size:13px}
   .member-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
   .member-chip{padding:5px 8px;border-radius:9px;background:#242a4b;color:#dfe2ff;font-size:12px}
+  .member-chip.accepted{background:#d9a928;color:#1a1300;border:1px solid #ffd76a;font-weight:900}
+  .member-chip.rejected{background:#ff3f58;color:#fff;border:1px solid #ff8292;font-weight:900}
+  .candidate-times{display:grid;gap:9px;margin-bottom:9px}
+  .candidate-time-row{display:grid;grid-template-columns:1fr auto;gap:9px;align-items:center}
+  .candidate-time-row .btn{min-width:42px}
+  .player.accepted{border-color:#d9a928;background:rgba(217,169,40,.17)}
+  .player.rejected{border-color:#ff465d;background:rgba(255,63,88,.16)}
+  .player-remove{
+    border:1px solid rgba(255,111,145,.5);background:rgba(255,111,145,.12);color:#ffb1c2;
+    padding:5px 8px;border-radius:8px;font-size:11px;cursor:pointer;flex:0 0 auto
+  }
+  .player-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
   .overlay{
     position:fixed;inset:0;background:rgba(3,5,13,.76);display:none;align-items:center;justify-content:center;
     padding:20px;z-index:100;backdrop-filter:blur(5px)
@@ -201,6 +213,7 @@
     .app{padding:12px}
     .form-grid{grid-template-columns:1fr}
     .field.full{grid-column:auto}
+    .candidate-time-row{grid-template-columns:1fr auto}
     .stat-boxes{grid-template-columns:1fr 1fr 1fr}
   }
 </style>
@@ -217,15 +230,12 @@
     </div>
     <div class="header-actions">
       <button class="btn primary" onclick="openCreate()">＋ 開啟新場次</button>
-
-      <input id="importFile" type="file" accept=".json" hidden onchange="importData(event)">
     </div>
   </header>
 
   <section class="toolbar" style="grid-template-columns:1fr auto">
     <div>
       <div class="week-title">所有突襲場次</div>
-      <div class="week-range">場次會一直保留，打完後由場主或公會幹部直接刪除。</div>
     </div>
     <select id="bossFilter" class="filter" onchange="render()">
       <option value="ALL">全部 BOSS</option>
@@ -240,7 +250,7 @@
   <main id="raidGrid" class="raid-grid"></main>
 
   <div class="footer">
-    StarLune Guild Raid Board · 所有未刪除場次集中顯示
+    · StarLune Guild Raid Board ·
   </div>
 </div>
 
@@ -275,17 +285,11 @@
           <input id="createOwnerPassword" type="password" minlength="4" maxlength="40" placeholder="之後安排隊伍時使用">
           <div class="hint">至少 4 碼。只有開場者自己需要知道。</div>
         </div>
-        <div class="field">
-          <label>候選時間 1</label>
-          <input id="time1" type="datetime-local">
-        </div>
-        <div class="field">
-          <label>候選時間 2</label>
-          <input id="time2" type="datetime-local">
-        </div>
-        <div class="field">
-          <label>候選時間 3</label>
-          <input id="time3" type="datetime-local">
+        <div class="field full">
+          <label>候選時間</label>
+          <div id="candidateTimes" class="candidate-times"></div>
+          <button type="button" class="btn small" id="addCandidateTimeBtn" onclick="addCandidateTime()">＋ 新增候選時間</button>
+          <div class="hint">預設 1 個候選時間；如有需要可自行新增，最多 3 個。</div>
         </div>
         <div class="field">
           <label>突襲人數</label>
@@ -636,17 +640,58 @@ function refreshTypeOptions(){
   sel.innerHTML = BOSSES[boss].map(x=>`<option>${x}</option>`).join('');
 }
 
+function candidateDefaultValue(addDays=0){
+  const d=new Date();
+  d.setDate(d.getDate()+1+addDays);
+  d.setHours(21,0,0,0);
+  return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+}
+
+function refreshCandidateTimeControls(){
+  const rows=[...document.querySelectorAll('#candidateTimes .candidate-time-row')];
+  rows.forEach((row,i)=>{
+    const label=row.querySelector('.candidate-time-label');
+    if(label) label.textContent=`時間 ${i+1}`;
+    const remove=row.querySelector('.remove-candidate-time');
+    if(remove) remove.style.display=rows.length>1?'inline-flex':'none';
+  });
+  const addBtn=document.getElementById('addCandidateTimeBtn');
+  if(addBtn) addBtn.disabled=rows.length>=3;
+}
+
+function addCandidateTime(value=''){
+  const box=document.getElementById('candidateTimes');
+  const count=box.querySelectorAll('.candidate-time-row').length;
+  if(count>=3) return toast('候選時間最多 3 個。','warn');
+
+  const row=document.createElement('div');
+  row.className='candidate-time-row';
+  row.innerHTML=`
+    <div>
+      <div class="candidate-time-label" style="font-size:12px;color:#9da5c9;margin-bottom:5px">時間 ${count+1}</div>
+      <input class="candidate-time-input" type="datetime-local">
+    </div>
+    <button type="button" class="btn danger small remove-candidate-time" title="移除這個候選時間">×</button>
+  `;
+  const input=row.querySelector('.candidate-time-input');
+  input.value=value || candidateDefaultValue(count);
+  row.querySelector('.remove-candidate-time').addEventListener('click',()=>{
+    row.remove();
+    refreshCandidateTimeControls();
+  });
+  box.appendChild(row);
+  refreshCandidateTimeControls();
+}
+
+function resetCandidateTimes(){
+  const box=document.getElementById('candidateTimes');
+  box.innerHTML='';
+  addCandidateTime(candidateDefaultValue(0));
+}
+
 function openCreate(){
   refreshTypeOptions();
-  const base = new Date();
-  base.setDate(base.getDate()+1);
-  base.setHours(21,0,0,0);
-  [0,1,2].forEach((add,i)=>{
-    const d = new Date(base);
-    d.setDate(d.getDate()+add);
-    document.getElementById('time'+(i+1)).value =
-      new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
-  });
+  resetCandidateTimes();
   openModal('createModal');
 }
 
@@ -655,7 +700,8 @@ async function createRaid(){
   const type = document.getElementById('createType').value;
   const owner = document.getElementById('createOwner').value.trim();
   const password = document.getElementById('createOwnerPassword').value;
-  const times = [1,2,3].map(i=>document.getElementById('time'+i).value);
+  const timeInputs=[...document.querySelectorAll('.candidate-time-input')];
+  const times=timeInputs.map(input=>input.value);
   const note = document.getElementById('createNote').value.trim();
   const raidSize = Number(document.getElementById('raidSize').value);
   const teamCapacity = 6;
@@ -663,8 +709,10 @@ async function createRaid(){
 
   if(!owner) return toast('請填寫開場玩家名稱。','bad');
   if(password.length < 4) return toast('場主密碼至少 4 碼。','bad');
-  if(times.some(x=>!x)) return toast('必須指定三個候選時間。','bad');
-  if(new Set(times).size !== 3) return toast('三個候選時間不可重複。','bad');
+  if(!times.length) return toast('至少需要一個候選時間。','bad');
+  if(times.some(x=>!x)) return toast('請填寫已新增的候選時間，或刪除空白欄位。','bad');
+  if(times.length>3) return toast('候選時間最多 3 個。','bad');
+  if(new Set(times).size !== times.length) return toast('候選時間不可重複。','bad');
   if(!BOSSES[boss].includes(type)) return toast('此 BOSS 不支援這個場次類型。','bad');
 
   const sortedTimes = [...times].sort();
@@ -717,7 +765,13 @@ function render(){
 
   grid.innerHTML = list.map(raid=>{
     const counts = raid.times.map(t=>raid.participants.filter(p=>(p.preferences||[]).includes(t)).length);
-    const chips = raid.participants.slice(0,10).map(p=>`<span class="member-chip">Lv.${escapeHtml(p.level||'—')} ${escapeHtml(p.name)}${p.role?`｜${escapeHtml(p.role)}`:''}</span>`).join('');
+    const chips = raid.participants.slice(0,10).map(p=>{
+      const decided=!!raid.finalTime;
+      const accepted=decided && (p.preferences||[]).includes(raid.finalTime);
+      const statusClass=decided ? (accepted?'accepted':'rejected') : '';
+      const statusText=decided ? (accepted?'（錄取）':'（未錄取）') : '';
+      return `<span class="member-chip ${statusClass}">Lv.${escapeHtml(p.level||'—')} ${escapeHtml(p.name)}${p.role?`｜${escapeHtml(p.role)}`:''}${statusText}</span>`;
+    }).join('');
     const extra = raid.participants.length>10 ? `<span class="member-chip">+${raid.participants.length-10}</span>` : '';
     const assigned = raid.participants.filter(p=>p.team && p.team!=='pool').length;
     return `
@@ -1014,10 +1068,17 @@ async function setFinalTime(value){
 
 function playerCard(p,raid){
   const prefText=(p.preferences||[]).map(t=>'①②③'[raid.times.indexOf(t)]||'').join('');
-  return `<div class="player" draggable="true" data-player="${p.id}">
-    <div class="player-name">${escapeHtml(p.name)}</div>
+  const decided=!!raid.finalTime;
+  const accepted=decided && (p.preferences||[]).includes(raid.finalTime);
+  const statusClass=decided ? (accepted?'accepted':'rejected') : '';
+  const statusText=decided ? (accepted?'（錄取）':'（未錄取）') : '';
+  return `<div class="player ${statusClass}" draggable="true" data-player="${p.id}">
+    <div class="player-head">
+      <div class="player-name">${escapeHtml(p.name)}${statusText}</div>
+      <button type="button" class="player-remove" onclick="event.preventDefault();event.stopPropagation();removeParticipant('${p.id}')">刪除</button>
+    </div>
     <div class="player-sub">Lv.${escapeHtml(p.level||'—')} · ${escapeHtml(p.role||'未填職業')}${p.note?` · ${escapeHtml(p.note)}`:''}</div>
-    <div class="player-pref">可配合：${prefText||'—'}${raid.finalTime ? ((p.preferences||[]).includes(raid.finalTime)?' · ✓ 可打最終時間':' · ⚠ 不含最終時間') : ''}</div>
+    <div class="player-pref">可配合：${prefText||'—'}${raid.finalTime ? (accepted?' · ✓ 可打最終時間':' · ⚠ 不含最終時間') : ''}</div>
   </div>`;
 }
 
@@ -1051,6 +1112,29 @@ function renderBoard(){
   }).join('');
 
   bindDragDrop();
+}
+
+async function removeParticipant(playerId){
+  if(!requireManager()) return toast('請先通過管理密碼驗證。','bad');
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  const player=(raid.participants||[]).find(p=>p.id===playerId);
+  if(!player) return toast('找不到這名玩家。','bad');
+  if(!confirm(`確定要從此場次刪除「${player.name}」嗎？`)) return;
+
+  try{
+    await db.runTransaction(async tx=>{
+      const ref=raidsRef.doc(activeRaidId);
+      const snap=await tx.get(ref);
+      if(!snap.exists) throw new Error('場次已不存在');
+      const latest={...snap.data(),id:snap.id};
+      latest.participants=(latest.participants||[]).filter(p=>p.id!==playerId);
+      tx.set(ref,latest);
+    });
+    toast(`已刪除玩家：${player.name}`,'warn');
+  }catch(err){
+    console.error(err);
+    toast('刪除玩家失敗：'+err.message,'bad');
+  }
 }
 
 function bindDragDrop(){
@@ -1138,55 +1222,6 @@ async function deleteCurrentRaid(){
   closeModal('manageModal');
   managerSession={raidId:null,authorized:false};
   toast('場次已刪除。','warn');
-}
-
-function exportData(){
-  const payload={
-    app:'StarLune Raid Board',
-    version:1,
-    exportedAt:new Date().toISOString(),
-    raids
-  };
-  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=`StarLune_BOSS_${dateKey(new Date())}.json`;
-  document.body.appendChild(a);a.click();a.remove();
-  URL.revokeObjectURL(a.href);
-  toast('資料已匯出。','good');
-}
-
-function importData(event){
-  const file=event.target.files?.[0]; if(!file) return;
-  const reader=new FileReader();
-  reader.onload=async ()=>{
-    try{
-      const parsed=JSON.parse(reader.result);
-      const arr=Array.isArray(parsed)?parsed:parsed.raids;
-      if(!Array.isArray(arr)) throw new Error('格式錯誤');
-      if(!confirm(`將匯入 ${arr.length} 個場次並覆蓋目前 Firebase 場次，確定嗎？`)) return;
-
-      const normalized=arr.map(r=>{
-        const inferredSize = Number(r.raidSize) === 12 || Number(r.teamCount) >= 2 ? 12 : 6;
-        r.raidSize = inferredSize;
-        r.teamCapacity = 6;
-        r.teamCount = inferredSize === 12 ? 2 : 1;
-        r.id = r.id || uid('raid');
-        return r;
-      });
-
-      const current=await raidsRef.get();
-      const deletes=current.docs.map(d=>d.ref.delete());
-      await Promise.all(deletes);
-      await Promise.all(normalized.map(r=>raidsRef.doc(r.id).set(r)));
-      toast('Firebase 資料匯入完成。','good');
-    }catch(e){
-      console.error(e);
-      toast('匯入失敗：' + e.message,'bad');
-    }
-    event.target.value='';
-  };
-  reader.readAsText(file,'utf-8');
 }
 
 document.querySelectorAll('.overlay').forEach(ov=>{
