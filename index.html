@@ -189,7 +189,7 @@
   .codebox{padding:12px;border:1px solid #333a63;border-radius:12px;background:#0b0f20;color:#bac2ea;font-size:12px;line-height:1.6}
   @media(max-width:900px){
     .raid-grid{grid-template-columns:1fr}
-    .toolbar{grid-template-columns:1fr}
+    .toolbar{grid-template-columns:1fr !important}
     .header-actions{justify-content:flex-start}
     header{position:static;align-items:flex-start;flex-direction:column}
     .board{grid-template-columns:1fr}
@@ -223,15 +223,10 @@
     </div>
   </header>
 
-  <section class="toolbar">
+  <section class="toolbar" style="grid-template-columns:1fr auto">
     <div>
-      <div class="week-title" id="weekTitle">本週突襲</div>
-      <div class="week-range" id="weekRange"></div>
-    </div>
-    <div class="week-actions">
-      <button class="btn small" onclick="changeWeek(-1)">← 上週</button>
-      <button class="btn small" onclick="goThisWeek()">本週</button>
-      <button class="btn small" onclick="changeWeek(1)">下週 →</button>
+      <div class="week-title">所有突襲場次</div>
+      <div class="week-range">場次會一直保留，打完後由場主或公會幹部直接刪除。</div>
     </div>
     <select id="bossFilter" class="filter" onchange="render()">
       <option value="ALL">全部 BOSS</option>
@@ -246,7 +241,7 @@
   <main id="raidGrid" class="raid-grid"></main>
 
   <div class="footer">
-    StarLune Guild Raid Board · 資料預設儲存在目前瀏覽器中
+    StarLune Guild Raid Board · 所有未刪除場次集中顯示
   </div>
 </div>
 
@@ -294,11 +289,12 @@
           <input id="time3" type="datetime-local">
         </div>
         <div class="field">
-          <label>每隊人數上限</label>
-          <select id="teamCapacity">
-            <option value="6" selected>6 人</option>
-            <option value="12">12 人</option>
+          <label>突襲人數</label>
+          <select id="raidSize">
+            <option value="6" selected>6 人（1 隊）</option>
+            <option value="12">12 人（2 隊）</option>
           </select>
+          <div class="hint">每隊固定 6 人；12 人場會自動分成 2 隊。</div>
         </div>
         <div class="field full">
           <label>場次說明（選填）</label>
@@ -329,15 +325,19 @@
           <input id="signupName" maxlength="20" placeholder="請輸入角色名稱">
         </div>
         <div class="field">
-          <label>職業 / 定位（選填）</label>
-          <input id="signupRole" maxlength="30" placeholder="例：主教、遠程、近戰">
+          <label>等級</label>
+          <input id="signupLevel" type="number" min="1" max="999" inputmode="numeric" placeholder="例：160">
+        </div>
+        <div class="field">
+          <label>職業</label>
+          <input id="signupRole" maxlength="30" placeholder="例：主教、神射手、英雄">
         </div>
         <div class="field">
           <label>個人退出碼</label>
           <input id="signupPin" type="password" inputmode="numeric" minlength="4" maxlength="12" placeholder="4～12 碼">
           <div class="hint">之後修改報名或退出時使用，避免他人冒名刪除。</div>
         </div>
-        <div class="field">
+        <div class="field full">
           <label>備註（選填）</label>
           <input id="signupNote" maxlength="80" placeholder="例：10 點後比較穩、可補位">
         </div>
@@ -396,11 +396,15 @@
           <input id="editSignupName" disabled>
         </div>
         <div class="field">
-          <label>職業 / 定位</label>
+          <label>等級</label>
+          <input id="editSignupLevel" type="number" min="1" max="999" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label>職業</label>
           <input id="editSignupRole" maxlength="30">
         </div>
-        <div class="field full">
-          <label>備註</label>
+        <div class="field">
+          <label>備註（選填）</label>
           <input id="editSignupNote" maxlength="80">
         </div>
         <div class="field full">
@@ -423,8 +427,8 @@
   <div class="modal" style="max-width:520px">
     <div class="modal-head">
       <div>
-        <div class="modal-title">隊伍管理驗證</div>
-        <div class="subtitle">可使用「場主密碼」或「公會幹部密碼」</div>
+        <div class="modal-title" id="authModalTitle">隊伍管理驗證</div>
+        <div class="subtitle" id="authModalSubtitle">可使用「場主密碼」或「公會幹部密碼」</div>
       </div>
       <button class="close" onclick="closeModal('authModal')">×</button>
     </div>
@@ -456,13 +460,8 @@
           <select id="finalTimeSelect" onchange="setFinalTime(this.value)"></select>
         </div>
         <div>
-          <label>隊伍數量</label>
-          <select id="teamCountSelect" onchange="changeTeamCount(this.value)">
-            <option value="1">1 隊</option>
-            <option value="2" selected>2 隊</option>
-            <option value="3">3 隊</option>
-            <option value="4">4 隊</option>
-          </select>
+          <label>突襲規模</label>
+          <div class="codebox" id="raidSizeDisplay">6 人（1 隊）</div>
         </div>
         <div style="align-self:end">
           <button class="btn cyan" onclick="autoArrange()">依最終時間自動排隊</button>
@@ -509,7 +508,7 @@ const BOSSES = {
 };
 
 let raids = loadData();
-let weekOffset = 0;
+let authAction = 'manage';
 let activeRaidId = null;
 let activeSelfPlayerId = null;
 let managerSession = {raidId:null,authorized:false};
@@ -608,14 +607,15 @@ function refreshTypeOptions(){
 
 function openCreate(){
   refreshTypeOptions();
-  const start = getCurrentWeekStart();
-  const defaultD = new Date(start); defaultD.setDate(defaultD.getDate()+4); defaultD.setHours(21,0,0,0);
-  const val = new Date(defaultD.getTime()-defaultD.getTimezoneOffset()*60000).toISOString().slice(0,16);
-  document.getElementById('time1').value = val;
-  const d2 = new Date(defaultD); d2.setDate(d2.getDate()+1);
-  document.getElementById('time2').value = new Date(d2.getTime()-d2.getTimezoneOffset()*60000).toISOString().slice(0,16);
-  const d3 = new Date(defaultD); d3.setDate(d3.getDate()+2);
-  document.getElementById('time3').value = new Date(d3.getTime()-d3.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  const base = new Date();
+  base.setDate(base.getDate()+1);
+  base.setHours(21,0,0,0);
+  [0,1,2].forEach((add,i)=>{
+    const d = new Date(base);
+    d.setDate(d.getDate()+add);
+    document.getElementById('time'+(i+1)).value =
+      new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  });
   openModal('createModal');
 }
 
@@ -626,7 +626,9 @@ async function createRaid(){
   const password = document.getElementById('createOwnerPassword').value;
   const times = [1,2,3].map(i=>document.getElementById('time'+i).value);
   const note = document.getElementById('createNote').value.trim();
-  const teamCapacity = Number(document.getElementById('teamCapacity').value);
+  const raidSize = Number(document.getElementById('raidSize').value);
+  const teamCapacity = 6;
+  const teamCount = raidSize === 12 ? 2 : 1;
 
   if(!owner) return toast('請填寫開場玩家名稱。','bad');
   if(password.length < 4) return toast('場主密碼至少 4 碼。','bad');
@@ -634,21 +636,17 @@ async function createRaid(){
   if(new Set(times).size !== 3) return toast('三個候選時間不可重複。','bad');
   if(!BOSSES[boss].includes(type)) return toast('此 BOSS 不支援這個場次類型。','bad');
 
-  const targetWeek = dateKey(getCurrentWeekStart());
-  const invalidWeek = times.some(t=>getWeekKey(t)!==targetWeek);
-  if(invalidWeek) return toast('三個候選時間必須都在目前顯示的同一週內。','bad');
-
   const sortedTimes = [...times].sort();
   const raid = {
     id:uid('raid'),
-    weekKey:targetWeek,
     boss,type,owner,
+    raidSize,
     ownerPasswordHash:await sha256(password),
     times:sortedTimes,
     finalTime:'',
     note,
     teamCapacity,
-    teamCount:2,
+    teamCount,
     createdAt:new Date().toISOString(),
     participants:[]
   };
@@ -667,13 +665,8 @@ async function createRaid(){
 function getRaid(id){ return raids.find(r=>r.id===id); }
 
 function render(){
-  const start = getCurrentWeekStart();
-  const weekKey = dateKey(start);
-  document.getElementById('weekRange').textContent = formatWeekRange(start);
-  document.getElementById('weekTitle').textContent = weekOffset===0 ? '本週突襲' : (weekOffset<0 ? `${Math.abs(weekOffset)} 週前` : `${weekOffset} 週後`);
-
   const filter = document.getElementById('bossFilter').value;
-  let list = raids.filter(r=>r.weekKey===weekKey);
+  let list = [...raids];
   if(filter!=='ALL') list = list.filter(r=>r.boss===filter);
   list.sort((a,b)=>(a.finalTime||a.times[0]).localeCompare(b.finalTime||b.times[0]));
 
@@ -681,7 +674,7 @@ function render(){
   if(!list.length){
     grid.innerHTML = `<div class="empty">
       <div style="font-size:34px;margin-bottom:10px">☾</div>
-      <div style="font-size:17px;color:#d8dcf8;font-weight:800">這週還沒有 BOSS 場次</div>
+      <div style="font-size:17px;color:#d8dcf8;font-weight:800">目前還沒有 BOSS 場次</div>
       <div style="margin-top:7px">任何公會玩家都可以按上方「開啟新場次」。</div>
     </div>`;
     return;
@@ -689,7 +682,7 @@ function render(){
 
   grid.innerHTML = list.map(raid=>{
     const counts = raid.times.map(t=>raid.participants.filter(p=>(p.preferences||[]).includes(t)).length);
-    const chips = raid.participants.slice(0,10).map(p=>`<span class="member-chip">${escapeHtml(p.name)}</span>`).join('');
+    const chips = raid.participants.slice(0,10).map(p=>`<span class="member-chip">Lv.${escapeHtml(p.level||'—')} ${escapeHtml(p.name)}${p.role?`｜${escapeHtml(p.role)}`:''}</span>`).join('');
     const extra = raid.participants.length>10 ? `<span class="member-chip">+${raid.participants.length-10}</span>` : '';
     const assigned = raid.participants.filter(p=>p.team && p.team!=='pool').length;
     return `
@@ -726,8 +719,8 @@ function render(){
 
       <div class="stat-boxes">
         <div class="stat"><strong>${raid.participants.length}</strong><span>報名人數</span></div>
-        <div class="stat"><strong>${raid.teamCount||2}</strong><span>預設隊伍</span></div>
-        <div class="stat"><strong>${raid.teamCapacity||6}</strong><span>每隊上限</span></div>
+        <div class="stat"><strong>${Number(raid.raidSize)===12 ? 12 : 6}</strong><span>突襲人數</span></div>
+        <div class="stat"><strong>${Number(raid.raidSize)===12 ? 2 : 1}</strong><span>隊伍數</span></div>
       </div>
 
       <div class="member-preview">
@@ -739,19 +732,18 @@ function render(){
         <button class="btn primary small" onclick="openSignup('${raid.id}')">＋ 我要報名</button>
         <button class="btn small" onclick="openSelf('${raid.id}')">修改 / 退出</button>
         <button class="btn cyan small" onclick="openManageAuth('${raid.id}')">隊伍安排</button>
+        <button class="btn danger small" onclick="openDeleteAuth('${raid.id}')">刪除場次</button>
       </div>
     </article>`;
   }).join('');
 }
-
-function changeWeek(delta){ weekOffset += delta; render(); }
-function goThisWeek(){ weekOffset = 0; render(); }
 
 function openSignup(id){
   const raid = getRaid(id); if(!raid) return;
   activeRaidId = id;
   document.getElementById('signupRaidTitle').textContent = `${raid.boss}｜${raid.type}`;
   document.getElementById('signupName').value='';
+  document.getElementById('signupLevel').value='';
   document.getElementById('signupRole').value='';
   document.getElementById('signupPin').value='';
   document.getElementById('signupNote').value='';
@@ -766,12 +758,15 @@ function openSignup(id){
 async function submitSignup(){
   const raid = getRaid(activeRaidId); if(!raid) return;
   const name = document.getElementById('signupName').value.trim();
+  const level = Number(document.getElementById('signupLevel').value);
   const role = document.getElementById('signupRole').value.trim();
   const pin = document.getElementById('signupPin').value;
   const note = document.getElementById('signupNote').value.trim();
   const prefs = [...document.querySelectorAll('input[name="signupTime"]:checked')].map(x=>x.value);
 
   if(!name) return toast('請輸入玩家名稱。','bad');
+  if(!Number.isInteger(level) || level < 1 || level > 999) return toast('請輸入正確的角色等級。','bad');
+  if(!role) return toast('請輸入職業。','bad');
   if(pin.length<4 || pin.length>12) return toast('個人退出碼請設定為 4～12 碼。','bad');
   if(!prefs.length) return toast('至少勾選一個可配合時間。','bad');
   if(raid.participants.some(p=>normalizeName(p.name)===normalizeName(name)))
@@ -779,7 +774,7 @@ async function submitSignup(){
 
   raid.participants.push({
     id:uid('p'),
-    name,role,note,
+    name,level,role,note,
     pinHash:await sha256(pin),
     preferences:prefs,
     team:'pool',
@@ -812,6 +807,7 @@ async function verifySelf(){
   activeSelfPlayerId=p.id;
   closeModal('selfModal');
   document.getElementById('editSignupName').value=p.name;
+  document.getElementById('editSignupLevel').value=p.level||'';
   document.getElementById('editSignupRole').value=p.role||'';
   document.getElementById('editSignupNote').value=p.note||'';
   document.getElementById('editSignupTimes').innerHTML=raid.times.map((t,i)=>`
@@ -828,7 +824,12 @@ function saveSignupEdit(){
   if(!p) return;
   const prefs=[...document.querySelectorAll('input[name="editSignupTime"]:checked')].map(x=>x.value);
   if(!prefs.length) return toast('至少保留一個可配合時間。','bad');
-  p.role=document.getElementById('editSignupRole').value.trim();
+  const level=Number(document.getElementById('editSignupLevel').value);
+  const role=document.getElementById('editSignupRole').value.trim();
+  if(!Number.isInteger(level) || level < 1 || level > 999) return toast('請輸入正確的角色等級。','bad');
+  if(!role) return toast('職業不可留白。','bad');
+  p.level=level;
+  p.role=role;
   p.note=document.getElementById('editSignupNote').value.trim();
   p.preferences=prefs;
   saveData();
@@ -851,7 +852,21 @@ function quitRaid(){
 
 function openManageAuth(id){
   activeRaidId=id;
+  authAction='manage';
   managerSession={raidId:id,authorized:false};
+  document.getElementById('authModalTitle').textContent='隊伍管理驗證';
+  document.getElementById('authModalSubtitle').textContent='可使用「場主密碼」或「公會幹部密碼」';
+  document.getElementById('managePassword').value='';
+  openModal('authModal');
+}
+
+function openDeleteAuth(id){
+  activeRaidId=id;
+  authAction='delete';
+  managerSession={raidId:id,authorized:false};
+  const raid=getRaid(id);
+  document.getElementById('authModalTitle').textContent='刪除場次驗證';
+  document.getElementById('authModalSubtitle').textContent=`${raid?.boss||''}｜${raid?.type||''}：打完後可直接刪除`;
   document.getElementById('managePassword').value='';
   openModal('authModal');
 }
@@ -865,6 +880,20 @@ async function verifyManager(){
   }
   managerSession={raidId:raid.id,authorized:true};
   closeModal('authModal');
+
+  if(authAction==='delete'){
+    if(!confirm(`確定刪除「${raid.boss}｜${raid.type}」場次？\n\n打完後刪除即可，此操作無法復原。`)){
+      managerSession={raidId:null,authorized:false};
+      return;
+    }
+    raids=raids.filter(r=>r.id!==raid.id);
+    saveData();
+    managerSession={raidId:null,authorized:false};
+    render();
+    toast('場次已刪除。','warn');
+    return;
+  }
+
   openManager();
 }
 
@@ -878,7 +907,9 @@ function openManager(){
   document.getElementById('manageSubtitle').textContent=`開場：${raid.owner}｜共 ${raid.participants.length} 人報名`;
   const ft=document.getElementById('finalTimeSelect');
   ft.innerHTML=`<option value="">尚未定案</option>`+raid.times.map((t,i)=>`<option value="${escapeHtml(t)}" ${raid.finalTime===t?'selected':''}>時間 ${i+1}｜${formatDateTime(t)}</option>`).join('');
-  document.getElementById('teamCountSelect').value=String(raid.teamCount||2);
+  const effectiveTeamCount=Number(raid.raidSize)===12 ? 2 : 1;
+  raid.teamCount=effectiveTeamCount;
+  document.getElementById('raidSizeDisplay').textContent=`${Number(raid.raidSize)===12 ? 12 : 6} 人（${effectiveTeamCount} 隊）`;
   renderBoard();
   openModal('manageModal');
 }
@@ -897,32 +928,19 @@ function setFinalTime(value){
   toast(value?'最終開打時間已鎖定。':'已取消最終時間。','good');
 }
 
-function changeTeamCount(v){
-  if(!requireManager()) return;
-  const raid=getRaid(activeRaidId); if(!raid) return;
-  const next=Number(v);
-  raid.teamCount=next;
-  raid.participants.forEach(p=>{
-    if(typeof p.team==='string' && p.team.startsWith('team')){
-      const n=Number(p.team.replace('team',''));
-      if(n>next) p.team='pool';
-    }
-  });
-  saveData(); renderBoard(); render();
-}
-
 function playerCard(p,raid){
   const prefText=(p.preferences||[]).map(t=>'①②③'[raid.times.indexOf(t)]||'').join('');
   return `<div class="player" draggable="true" data-player="${p.id}">
     <div class="player-name">${escapeHtml(p.name)}</div>
-    <div class="player-sub">${escapeHtml(p.role||'未填定位')}${p.note?` · ${escapeHtml(p.note)}`:''}</div>
+    <div class="player-sub">Lv.${escapeHtml(p.level||'—')} · ${escapeHtml(p.role||'未填職業')}${p.note?` · ${escapeHtml(p.note)}`:''}</div>
     <div class="player-pref">可配合：${prefText||'—'}${raid.finalTime ? ((p.preferences||[]).includes(raid.finalTime)?' · ✓ 可打最終時間':' · ⚠ 不含最終時間') : ''}</div>
   </div>`;
 }
 
 function renderBoard(){
   const raid=getRaid(activeRaidId); if(!raid || !requireManager()) return;
-  const teamCount=raid.teamCount||2;
+  const teamCount=Number(raid.raidSize)===12 ? 2 : 1;
+  raid.teamCount=teamCount;
   const cap=raid.teamCapacity||6;
 
   raid.participants.forEach(p=>{
@@ -1007,7 +1025,8 @@ function autoArrange(){
 
   let teamIndex=1;
   let fill=0;
-  const tc=raid.teamCount||2, cap=raid.teamCapacity||6;
+  const tc=Number(raid.raidSize)===12 ? 2 : 1, cap=raid.teamCapacity||6;
+  raid.teamCount=tc;
   eligible.forEach(p=>{
     if(teamIndex>tc) return;
     p.team='team'+teamIndex;
@@ -1056,7 +1075,13 @@ function importData(event){
       const arr=Array.isArray(parsed)?parsed:parsed.raids;
       if(!Array.isArray(arr)) throw new Error('格式錯誤');
       if(!confirm(`將匯入 ${arr.length} 個場次並覆蓋目前資料，確定嗎？`)) return;
-      raids=arr;
+      raids=arr.map(r=>{
+        const inferredSize = Number(r.raidSize) === 12 || Number(r.teamCount) >= 2 ? 12 : 6;
+        r.raidSize = inferredSize;
+        r.teamCapacity = 6;
+        r.teamCount = inferredSize === 12 ? 2 : 1;
+        return r;
+      });
       saveData();render();
       toast('資料匯入完成。','good');
     }catch(e){toast('匯入失敗：不是有效的 StarLune JSON 資料。','bad')}
