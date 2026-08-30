@@ -461,6 +461,10 @@
       <label>管理密碼</label>
       <input id="managePassword" type="password" placeholder="輸入場主或幹部密碼" onkeydown="if(event.key==='Enter')verifyManager()">
       <div class="hint">驗證成功後才能調整最終時間、分隊與場次資料。</div>
+      <div id="forceDeleteArea" class="danger-zone" style="display:none">
+        <button type="button" class="btn danger" onclick="startForceDelete(activeRaidId)">強制刪除（6 小時倒數）</button>
+        <div class="hint">若開場玩家忘記密碼，可啟動強制刪除；場次將紅色遮罩並於 6 小時後刪除。</div>
+      </div>
     </div>
     <div class="modal-foot">
       <button class="btn" onclick="closeModal('authModal')">取消</button>
@@ -483,6 +487,10 @@
         <div>
           <label>最終開打時間</label>
           <select id="finalTimeSelect" onchange="setFinalTime(this.value)"></select>
+          <label style="margin-top:12px">修改備註</label>
+          <textarea id="manageNote" maxlength="300" placeholder="修改場次備註"
+                    style="width:100%;margin:0;display:block"
+                    onchange="setRaidNote(this.value)"></textarea>
         </div>
         <div>
           <label>突襲規模</label>
@@ -493,10 +501,6 @@
           <input id="highlightText" maxlength="40" placeholder="例：急徵１法師"
                  onchange="setHighlightText(this.value)"
                  onkeydown="if(event.key==='Enter'){this.blur();}">
-          <label style="margin-top:12px">修改備註</label>
-          <textarea id="manageNote" maxlength="300" placeholder="修改場次備註"
-                    style="width:100%;margin:0;display:block"
-                    onchange="setRaidNote(this.value)"></textarea>
         </div>
         <div style="align-self:end">
           <button class="btn cyan" onclick="autoArrange()">依最終時間自動排隊</button>
@@ -818,6 +822,8 @@ function render(){
             <div class="force-delete-title">⚠ 強制刪除倒數中</div>
             <div class="force-delete-countdown" data-force-delete-id="${raid.id}" data-force-delete-at="${escapeHtml(raid.forceDeleteAt)}">--:--:--</div>
             <div class="force-delete-hint">倒數結束後此場次將無條件刪除</div>
+            <button type="button" class="btn danger small" style="margin-top:12px"
+                    onclick="event.stopPropagation();cancelForceDelete('${raid.id}')">取消強制刪除</button>
           </div>
         </div>` : ''}
       <div class="raid-top">
@@ -866,7 +872,6 @@ function render(){
         <button class="btn small" onclick="openSelf('${raid.id}')">修改 / 退出</button>
         <button class="btn cyan small" onclick="openManageAuth('${raid.id}')">隊伍安排</button>
         <button class="btn danger small" onclick="openDeleteAuth('${raid.id}')">刪除場次</button>
-        <button class="btn danger small" onclick="startForceDelete('${raid.id}')">強制刪除</button>
       </div>
     </article>`;
   }).join('');
@@ -1036,8 +1041,26 @@ function openManageAuth(id){
   managerSession={raidId:id,authorized:false};
   document.getElementById('authModalTitle').textContent='隊伍管理驗證';
   document.getElementById('authModalSubtitle').textContent='可使用「場主密碼」或「公會幹部密碼」';
+  document.getElementById('forceDeleteArea').style.display='none';
   document.getElementById('managePassword').value='';
   openModal('authModal');
+}
+
+async function cancelForceDelete(id){
+  const raid=getRaid(id); if(!raid) return;
+  if(!raid.forceDeleteAt) return;
+
+  const ok=confirm(`確定取消「${raid.boss}｜${raid.type}」的強制刪除倒數？`);
+  if(!ok) return;
+
+  delete raid.forceDeleteAt;
+  try{
+    await saveRaid(raid);
+    toast('已取消強制刪除。','good');
+  }catch(err){
+    console.error(err);
+    toast('取消強制刪除失敗：'+err.message,'bad');
+  }
 }
 
 async function startForceDelete(id){
@@ -1050,6 +1073,7 @@ async function startForceDelete(id){
   raid.forceDeleteAt=new Date(Date.now()+6*60*60*1000).toISOString();
   try{
     await saveRaid(raid);
+    closeModal('authModal');
     toast('已啟動強制刪除，6 小時後自動刪除。','warn');
   }catch(err){
     console.error(err);
@@ -1095,6 +1119,7 @@ function openDeleteAuth(id){
   const raid=getRaid(id);
   document.getElementById('authModalTitle').textContent='刪除場次驗證';
   document.getElementById('authModalSubtitle').textContent=`${raid?.boss||''}｜${raid?.type||''}：打完後可直接刪除`;
+  document.getElementById('forceDeleteArea').style.display='flex';
   document.getElementById('managePassword').value='';
   openModal('authModal');
 }
