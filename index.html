@@ -85,8 +85,30 @@
   .raid-card{
     border:1px solid var(--line);border-radius:22px;padding:18px;
     background:linear-gradient(180deg,rgba(20,25,50,.98),rgba(13,17,34,.98));
-    box-shadow:0 12px 30px rgba(0,0,0,.2)
+    box-shadow:0 12px 30px rgba(0,0,0,.2);
+    position:relative;
+    overflow:hidden;
   }
+  .force-delete-overlay{
+    position:absolute;inset:0;z-index:8;
+    background:rgba(170,0,24,.72);
+    border:2px solid #ff4d63;
+    display:flex;align-items:center;justify-content:center;
+    text-align:center;padding:22px;
+    backdrop-filter:blur(2px);
+  }
+  .force-delete-box{
+    background:rgba(25,0,6,.88);
+    border:1px solid rgba(255,150,165,.65);
+    border-radius:16px;
+    padding:16px 18px;
+    color:#fff;
+    max-width:360px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  .force-delete-title{font-size:18px;font-weight:900;color:#ffbdc7}
+  .force-delete-countdown{font-size:26px;font-weight:900;margin-top:8px;letter-spacing:1px}
+  .force-delete-hint{font-size:12px;color:#ffd5dc;margin-top:6px;line-height:1.5}
   .raid-top{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
   .boss-name{font-size:21px;font-weight:900}
   .badges{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px}
@@ -473,6 +495,7 @@
                  onkeydown="if(event.key==='Enter'){this.blur();}">
           <label style="margin-top:12px">修改備註</label>
           <textarea id="manageNote" maxlength="300" placeholder="修改場次備註"
+                    style="width:100%;margin:0;display:block"
                     onchange="setRaidNote(this.value)"></textarea>
         </div>
         <div style="align-self:end">
@@ -563,6 +586,7 @@ function syncRaidsFromFirestore(){
     }));
 
     render();
+    deleteExpiredForceRaids();
 
     if(managerSession.authorized && activeRaidId){
       const active = getRaid(activeRaidId);
@@ -788,6 +812,14 @@ function render(){
     const assigned = raid.participants.filter(p=>p.team && p.team!=='pool').length;
     return `
     <article class="raid-card">
+      ${raid.forceDeleteAt ? `
+        <div class="force-delete-overlay">
+          <div class="force-delete-box">
+            <div class="force-delete-title">⚠ 強制刪除倒數中</div>
+            <div class="force-delete-countdown" data-force-delete-id="${raid.id}" data-force-delete-at="${escapeHtml(raid.forceDeleteAt)}">--:--:--</div>
+            <div class="force-delete-hint">倒數結束後此場次將無條件刪除</div>
+          </div>
+        </div>` : ''}
       <div class="raid-top">
         <div>
           <div class="boss-name">${escapeHtml(raid.boss)}${raid.highlightText?` <span style="font-size:15px;font-weight:800;color:#ffd36b">（${escapeHtml(raid.highlightText)}）</span>`:''}</div>
@@ -834,9 +866,12 @@ function render(){
         <button class="btn small" onclick="openSelf('${raid.id}')">修改 / 退出</button>
         <button class="btn cyan small" onclick="openManageAuth('${raid.id}')">隊伍安排</button>
         <button class="btn danger small" onclick="openDeleteAuth('${raid.id}')">刪除場次</button>
+        <button class="btn danger small" onclick="startForceDelete('${raid.id}')">強制刪除</button>
       </div>
     </article>`;
   }).join('');
+
+  updateForceDeleteCountdowns();
 }
 
 function openSignup(id){
@@ -1003,6 +1038,54 @@ function openManageAuth(id){
   document.getElementById('authModalSubtitle').textContent='可使用「場主密碼」或「公會幹部密碼」';
   document.getElementById('managePassword').value='';
   openModal('authModal');
+}
+
+async function startForceDelete(id){
+  const raid=getRaid(id); if(!raid) return;
+  if(raid.forceDeleteAt) return toast('此場次已在強制刪除倒數中。','warn');
+
+  const ok=confirm(`確定啟動「${raid.boss}｜${raid.type}」強制刪除？\n\n此功能不需要管理密碼。啟動後會紅色遮罩倒數 6 小時，時間到即刪除場次。`);
+  if(!ok) return;
+
+  raid.forceDeleteAt=new Date(Date.now()+6*60*60*1000).toISOString();
+  try{
+    await saveRaid(raid);
+    toast('已啟動強制刪除，6 小時後自動刪除。','warn');
+  }catch(err){
+    console.error(err);
+    toast('強制刪除設定失敗：'+err.message,'bad');
+  }
+}
+
+async function deleteExpiredForceRaids(){
+  const now=Date.now();
+  const expired=raids.filter(r=>r.forceDeleteAt && new Date(r.forceDeleteAt).getTime()<=now);
+  if(!expired.length) return;
+
+  for(const raid of expired){
+    try{
+      await deleteRaidById(raid.id);
+    }catch(err){
+      console.error('強制刪除失敗',raid.id,err);
+    }
+  }
+}
+
+function formatCountdown(ms){
+  if(ms<=0) return '00:00:00';
+  const total=Math.floor(ms/1000);
+  const h=Math.floor(total/3600);
+  const m=Math.floor((total%3600)/60);
+  const s=total%60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function updateForceDeleteCountdowns(){
+  const now=Date.now();
+  document.querySelectorAll('[data-force-delete-at]').forEach(el=>{
+    const at=new Date(el.dataset.forceDeleteAt).getTime();
+    el.textContent=formatCountdown(at-now);
+  });
 }
 
 function openDeleteAuth(id){
@@ -1295,6 +1378,10 @@ document.addEventListener('keydown',e=>{
 refreshTypeOptions();
 render();
 syncRaidsFromFirestore();
+setInterval(()=>{
+  updateForceDeleteCountdowns();
+  deleteExpiredForceRaids();
+},1000);
 </script>
 </body>
 </html>
