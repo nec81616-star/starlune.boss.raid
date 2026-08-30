@@ -183,7 +183,7 @@
   }
   .check-row input{width:18px;height:18px;flex:0 0 auto;margin-top:1px}
   .manage-toolbar{
-    display:grid;grid-template-columns:1fr;gap:10px;padding-bottom:16px;border-bottom:1px solid var(--line)
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;padding-bottom:16px;border-bottom:1px solid var(--line)
   }
   .board{display:grid;grid-template-columns:260px 1fr;gap:14px;margin-top:16px}
   .pool,.team{
@@ -509,7 +509,7 @@
                  onkeydown="if(event.key==='Enter'){this.blur();}">
         </div>
 
-        <div>
+        <div style="grid-column:1/-1">
           <button class="btn cyan" style="width:100%;height:44px" onclick="autoArrange()">依最終時間自動排隊</button>
         </div>
       </div>
@@ -1217,10 +1217,20 @@ async function setFinalTime(value){
   if(!requireManager()) return;
   const raid=getRaid(activeRaidId); if(!raid) return;
   if(value && !raid.times.includes(value)) return;
+
+  const changed=raid.finalTime!==value;
   raid.finalTime=value;
+
+  if(changed){
+    raid.participants.forEach(p=>p.team='pool');
+  }
+
   try{ await saveRaid(raid); }catch(err){ console.error(err); return toast('儲存失敗：'+err.message,'bad'); }
   render(); renderBoard();
-  toast(value?'最終開打時間已鎖定。':'已取消最終時間。','good');
+
+  if(changed){
+    toast(value?'最終開打時間已更新，所有玩家已撤回待安排。':'已取消最終時間，所有玩家已撤回待安排。','good');
+  }
 }
 
 function playerCard(p,raid){
