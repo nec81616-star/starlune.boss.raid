@@ -489,7 +489,23 @@
 
 <div id="statusline" class="statusline"></div>
 
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore-compat.js"></script>
 <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyB8BaHGVdC6lGLnIqta5CYERVB45R0oxZ8",
+  authDomain: "starlune-boss-raid.firebaseapp.com",
+  projectId: "starlune-boss-raid",
+  storageBucket: "starlune-boss-raid.firebasestorage.app",
+  messagingSenderId: "1006596070583",
+  appId: "1:1006596070583:web:aca5816acec653f844c132",
+  measurementId: "G-9K8KL5HR3W"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const raidsRef = db.collection('raids');
+
 const STORAGE_KEY = 'starlune_raid_board_v1';
 
 /*
@@ -507,7 +523,7 @@ const BOSSES = {
   '艾畢奈亞': ['拓荒場','正式場']
 };
 
-let raids = loadData();
+let raids = [];
 let authAction = 'manage';
 let activeRaidId = null;
 let activeSelfPlayerId = null;
@@ -518,20 +534,36 @@ function uid(prefix='id'){
   return prefix + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
 }
 
-function loadData(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  }catch(e){
-    console.error(e);
-    return [];
-  }
+async function saveRaid(raid){
+  if(!raid?.id) throw new Error('缺少場次 ID');
+  await raidsRef.doc(raid.id).set(raid);
 }
 
-function saveData(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(raids));
+async function deleteRaidById(id){
+  await raidsRef.doc(id).delete();
+}
+
+function syncRaidsFromFirestore(){
+  return raidsRef.onSnapshot(snapshot=>{
+    raids = snapshot.docs.map(doc=>({
+      ...doc.data(),
+      id: doc.id
+    }));
+
+    render();
+
+    if(managerSession.authorized && activeRaidId){
+      const active = getRaid(activeRaidId);
+      if(active && document.getElementById('manageModal').classList.contains('show')){
+        renderBoard();
+      }else if(!active && document.getElementById('manageModal').classList.contains('show')){
+        closeManage();
+      }
+    }
+  }, err=>{
+    console.error(err);
+    toast('Firebase 連線失敗：' + err.message, 'bad');
+  });
 }
 
 function escapeHtml(v=''){
@@ -650,8 +682,12 @@ async function createRaid(){
     createdAt:new Date().toISOString(),
     participants:[]
   };
-  raids.push(raid);
-  saveData();
+  try{
+    await saveRaid(raid);
+  }catch(err){
+    console.error(err);
+    return toast('建立場次失敗：' + err.message, 'bad');
+  }
   closeModal('createModal');
 
   document.getElementById('createOwner').value='';
@@ -769,20 +805,36 @@ async function submitSignup(){
   if(!role) return toast('請輸入職業。','bad');
   if(pin.length<4 || pin.length>12) return toast('個人退出碼請設定為 4～12 碼。','bad');
   if(!prefs.length) return toast('至少勾選一個可配合時間。','bad');
-  if(raid.participants.some(p=>normalizeName(p.name)===normalizeName(name)))
-    return toast('這個玩家名稱已經報名此場次。','bad');
 
-  raid.participants.push({
+  const player = {
     id:uid('p'),
     name,level,role,note,
     pinHash:await sha256(pin),
     preferences:prefs,
     team:'pool',
     joinedAt:new Date().toISOString()
-  });
-  saveData();
+  };
+
+  try{
+    await db.runTransaction(async tx=>{
+      const ref=raidsRef.doc(activeRaidId);
+      const snap=await tx.get(ref);
+      if(!snap.exists) throw new Error('場次已不存在');
+      const latest={...snap.data(), id:snap.id};
+      latest.participants=Array.isArray(latest.participants)?latest.participants:[];
+      if(latest.participants.some(p=>normalizeName(p.name)===normalizeName(name))){
+        throw new Error('DUPLICATE_PLAYER');
+      }
+      latest.participants.push(player);
+      tx.set(ref, latest);
+    });
+  }catch(err){
+    console.error(err);
+    if(err.message==='DUPLICATE_PLAYER') return toast('這個玩家名稱已經報名此場次。','bad');
+    return toast('報名失敗：' + err.message,'bad');
+  }
+
   closeModal('signupModal');
-  render();
   toast(`${name} 報名成功。`,'good');
 }
 
@@ -818,7 +870,7 @@ async function verifySelf(){
   openModal('editSignupModal');
 }
 
-function saveSignupEdit(){
+async function saveSignupEdit(){
   const raid=getRaid(activeRaidId);
   const p=raid?.participants.find(x=>x.id===activeSelfPlayerId);
   if(!p) return;
@@ -828,25 +880,53 @@ function saveSignupEdit(){
   const role=document.getElementById('editSignupRole').value.trim();
   if(!Number.isInteger(level) || level < 1 || level > 999) return toast('請輸入正確的角色等級。','bad');
   if(!role) return toast('職業不可留白。','bad');
-  p.level=level;
-  p.role=role;
-  p.note=document.getElementById('editSignupNote').value.trim();
-  p.preferences=prefs;
-  saveData();
+  const note=document.getElementById('editSignupNote').value.trim();
+
+  try{
+    await db.runTransaction(async tx=>{
+      const ref=raidsRef.doc(activeRaidId);
+      const snap=await tx.get(ref);
+      if(!snap.exists) throw new Error('場次已不存在');
+      const latest={...snap.data(), id:snap.id};
+      latest.participants=Array.isArray(latest.participants)?latest.participants:[];
+      const target=latest.participants.find(x=>x.id===activeSelfPlayerId);
+      if(!target) throw new Error('找不到報名資料');
+      target.level=level;
+      target.role=role;
+      target.note=note;
+      target.preferences=prefs;
+      tx.set(ref, latest);
+    });
+  }catch(err){
+    console.error(err);
+    return toast('更新失敗：' + err.message,'bad');
+  }
+
   closeModal('editSignupModal');
-  render();
   toast('報名資料已更新。','good');
 }
 
-function quitRaid(){
+async function quitRaid(){
   const raid=getRaid(activeRaidId); if(!raid) return;
   const p=raid.participants.find(x=>x.id===activeSelfPlayerId);
   if(!p) return;
   if(!confirm(`確定要讓「${p.name}」退出 ${raid.boss} ${raid.type} 嗎？`)) return;
-  raid.participants=raid.participants.filter(x=>x.id!==p.id);
-  saveData();
+
+  try{
+    await db.runTransaction(async tx=>{
+      const ref=raidsRef.doc(activeRaidId);
+      const snap=await tx.get(ref);
+      if(!snap.exists) throw new Error('場次已不存在');
+      const latest={...snap.data(), id:snap.id};
+      latest.participants=(latest.participants||[]).filter(x=>x.id!==activeSelfPlayerId);
+      tx.set(ref, latest);
+    });
+  }catch(err){
+    console.error(err);
+    return toast('退出失敗：' + err.message,'bad');
+  }
+
   closeModal('editSignupModal');
-  render();
   toast('已退出場次。','warn');
 }
 
@@ -886,10 +966,14 @@ async function verifyManager(){
       managerSession={raidId:null,authorized:false};
       return;
     }
-    raids=raids.filter(r=>r.id!==raid.id);
-    saveData();
+    try{
+      await deleteRaidById(raid.id);
+    }catch(err){
+      console.error(err);
+      managerSession={raidId:null,authorized:false};
+      return toast('刪除失敗：' + err.message,'bad');
+    }
     managerSession={raidId:null,authorized:false};
-    render();
     toast('場次已刪除。','warn');
     return;
   }
@@ -919,12 +1003,13 @@ function closeManage(){
   managerSession={raidId:null,authorized:false};
 }
 
-function setFinalTime(value){
+async function setFinalTime(value){
   if(!requireManager()) return;
   const raid=getRaid(activeRaidId); if(!raid) return;
   if(value && !raid.times.includes(value)) return;
   raid.finalTime=value;
-  saveData(); render(); renderBoard();
+  try{ await saveRaid(raid); }catch(err){ console.error(err); return toast('儲存失敗：'+err.message,'bad'); }
+  render(); renderBoard();
   toast(value?'最終開打時間已鎖定。':'已取消最終時間。','good');
 }
 
@@ -990,7 +1075,7 @@ function bindDragDrop(){
   });
 }
 
-function movePlayer(playerId,target){
+async function movePlayer(playerId,target){
   if(!requireManager() || !playerId) return;
   const raid=getRaid(activeRaidId); if(!raid) return;
   const p=raid.participants.find(x=>x.id===playerId); if(!p) return;
@@ -1000,18 +1085,20 @@ function movePlayer(playerId,target){
     if(current >= (raid.teamCapacity||6)) return toast('這一隊已達人數上限。','bad');
   }
   p.team=target;
-  saveData();renderBoard();render();
+  try{ await saveRaid(raid); }catch(err){ console.error(err); return toast('分隊儲存失敗：'+err.message,'bad'); }
+  renderBoard();render();
 }
 
-function clearAssignments(){
+async function clearAssignments(){
   if(!requireManager()) return;
   const raid=getRaid(activeRaidId); if(!raid) return;
   raid.participants.forEach(p=>p.team='pool');
-  saveData();renderBoard();render();
+  try{ await saveRaid(raid); }catch(err){ console.error(err); return toast('儲存失敗：'+err.message,'bad'); }
+  renderBoard();render();
   toast('所有玩家已退回待安排。','warn');
 }
 
-function autoArrange(){
+async function autoArrange(){
   if(!requireManager()) return;
   const raid=getRaid(activeRaidId); if(!raid) return;
   if(!raid.finalTime) return toast('請先鎖定最終開打時間。','bad');
@@ -1033,20 +1120,24 @@ function autoArrange(){
     fill++;
     if(fill>=cap){teamIndex++;fill=0}
   });
-  saveData();renderBoard();render();
+  try{ await saveRaid(raid); }catch(err){ console.error(err); return toast('儲存失敗：'+err.message,'bad'); }
+  renderBoard();render();
   const overflow=eligible.filter(p=>p.team==='pool').length;
   toast(overflow?`已自動安排，可打最終時間者中仍有 ${overflow} 人超出容量。`:'已依最終時間自動安排。',overflow?'warn':'good');
 }
 
-function deleteCurrentRaid(){
+async function deleteCurrentRaid(){
   if(!requireManager()) return;
   const raid=getRaid(activeRaidId); if(!raid) return;
   if(!confirm(`確定刪除「${raid.boss}｜${raid.type}」整個場次？此操作無法復原。`)) return;
-  raids=raids.filter(r=>r.id!==raid.id);
-  saveData();
+  try{
+    await deleteRaidById(raid.id);
+  }catch(err){
+    console.error(err);
+    return toast('刪除失敗：' + err.message,'bad');
+  }
   closeModal('manageModal');
   managerSession={raidId:null,authorized:false};
-  render();
   toast('場次已刪除。','warn');
 }
 
@@ -1069,22 +1160,31 @@ function exportData(){
 function importData(event){
   const file=event.target.files?.[0]; if(!file) return;
   const reader=new FileReader();
-  reader.onload=()=>{
+  reader.onload=async ()=>{
     try{
       const parsed=JSON.parse(reader.result);
       const arr=Array.isArray(parsed)?parsed:parsed.raids;
       if(!Array.isArray(arr)) throw new Error('格式錯誤');
-      if(!confirm(`將匯入 ${arr.length} 個場次並覆蓋目前資料，確定嗎？`)) return;
-      raids=arr.map(r=>{
+      if(!confirm(`將匯入 ${arr.length} 個場次並覆蓋目前 Firebase 場次，確定嗎？`)) return;
+
+      const normalized=arr.map(r=>{
         const inferredSize = Number(r.raidSize) === 12 || Number(r.teamCount) >= 2 ? 12 : 6;
         r.raidSize = inferredSize;
         r.teamCapacity = 6;
         r.teamCount = inferredSize === 12 ? 2 : 1;
+        r.id = r.id || uid('raid');
         return r;
       });
-      saveData();render();
-      toast('資料匯入完成。','good');
-    }catch(e){toast('匯入失敗：不是有效的 StarLune JSON 資料。','bad')}
+
+      const current=await raidsRef.get();
+      const deletes=current.docs.map(d=>d.ref.delete());
+      await Promise.all(deletes);
+      await Promise.all(normalized.map(r=>raidsRef.doc(r.id).set(r)));
+      toast('Firebase 資料匯入完成。','good');
+    }catch(e){
+      console.error(e);
+      toast('匯入失敗：' + e.message,'bad');
+    }
     event.target.value='';
   };
   reader.readAsText(file,'utf-8');
@@ -1110,6 +1210,7 @@ document.addEventListener('keydown',e=>{
 
 refreshTypeOptions();
 render();
+syncRaidsFromFirestore();
 </script>
 </body>
 </html>
