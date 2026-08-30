@@ -1,0 +1,1090 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>StarLune｜每週 BOSS 突襲預約</title>
+<style>
+  :root{
+    --bg:#090b18;
+    --panel:#11152a;
+    --panel2:#171c36;
+    --line:#2a3158;
+    --text:#f6f7ff;
+    --muted:#9da5c9;
+    --accent:#9e88ff;
+    --accent2:#63d7ff;
+    --good:#73e2a7;
+    --warn:#ffd36b;
+    --danger:#ff6f91;
+    --shadow:0 18px 50px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:Inter,"Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+    background:
+      radial-gradient(circle at 15% 10%,rgba(158,136,255,.18),transparent 28%),
+      radial-gradient(circle at 85% 5%,rgba(99,215,255,.12),transparent 24%),
+      linear-gradient(180deg,#090b18 0%,#0c1020 60%,#080a15 100%);
+    color:var(--text);
+  }
+  button,input,select,textarea{font:inherit}
+  button{cursor:pointer}
+  .app{max-width:1440px;margin:auto;padding:26px}
+  header{
+    display:flex;gap:18px;align-items:center;justify-content:space-between;
+    padding:20px 22px;border:1px solid var(--line);border-radius:24px;
+    background:linear-gradient(135deg,rgba(22,27,56,.95),rgba(13,17,35,.92));
+    box-shadow:var(--shadow);position:sticky;top:12px;z-index:20;backdrop-filter:blur(14px)
+  }
+  .brand{display:flex;align-items:center;gap:14px}
+  .moon{
+    width:48px;height:48px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#fff 0 8%,#d7d1ff 9% 40%,#a187ff 41% 70%,#7059db 71%);
+    box-shadow:0 0 30px rgba(158,136,255,.55);
+    position:relative;
+  }
+  .moon:after{
+    content:"";position:absolute;width:33px;height:33px;border-radius:50%;
+    background:#12162c;right:-3px;top:-2px;
+  }
+  h1{margin:0;font-size:22px;letter-spacing:.5px}
+  .subtitle{font-size:13px;color:var(--muted);margin-top:4px}
+  .header-actions,.week-actions,.card-actions,.row-actions{display:flex;gap:9px;flex-wrap:wrap}
+  .btn{
+    border:1px solid var(--line);background:#171c35;color:var(--text);
+    padding:10px 14px;border-radius:12px;transition:.18s ease;
+  }
+  .btn:hover{transform:translateY(-1px);border-color:#6670a7}
+  .btn.primary{background:linear-gradient(135deg,#8f78ff,#6652d9);border-color:#9a86ff;font-weight:700}
+  .btn.cyan{background:linear-gradient(135deg,#2f96b8,#32668f);border-color:#58c9ed}
+  .btn.good{background:rgba(73,172,119,.16);border-color:rgba(115,226,167,.48);color:#baffd6}
+  .btn.warn{background:rgba(255,211,107,.12);border-color:rgba(255,211,107,.38);color:#ffe49b}
+  .btn.danger{background:rgba(255,111,145,.12);border-color:rgba(255,111,145,.38);color:#ffadc0}
+  .btn.ghost{background:transparent}
+  .btn.small{padding:7px 10px;font-size:13px;border-radius:10px}
+  .toolbar{
+    margin:22px 0;display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center
+  }
+  .week-title{font-size:19px;font-weight:800}
+  .week-range{color:var(--muted);font-size:13px;margin-top:3px}
+  .filter{min-width:160px}
+  select,input,textarea{
+    width:100%;border:1px solid var(--line);background:#0d1124;color:var(--text);
+    border-radius:12px;padding:11px 12px;outline:none;
+  }
+  select:focus,input:focus,textarea:focus{border-color:#8c7af2;box-shadow:0 0 0 3px rgba(158,136,255,.12)}
+  textarea{resize:vertical;min-height:92px}
+  .raid-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+  .empty{
+    grid-column:1/-1;text-align:center;padding:70px 24px;border:1px dashed #394069;border-radius:22px;
+    color:var(--muted);background:rgba(17,21,42,.5)
+  }
+  .raid-card{
+    border:1px solid var(--line);border-radius:22px;padding:18px;
+    background:linear-gradient(180deg,rgba(20,25,50,.98),rgba(13,17,34,.98));
+    box-shadow:0 12px 30px rgba(0,0,0,.2)
+  }
+  .raid-top{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+  .boss-name{font-size:21px;font-weight:900}
+  .badges{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px}
+  .badge{
+    display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:999px;
+    font-size:12px;border:1px solid #3b426b;color:#cdd3f5;background:#191f3d
+  }
+  .badge.practice{border-color:#4b82a1;color:#a9e7ff}
+  .badge.explore{border-color:#8d6faf;color:#d8b6ff}
+  .badge.formal{border-color:#997744;color:#ffe0a0}
+  .badge.locked{border-color:#44785e;color:#adffd1}
+  .meta{display:flex;gap:18px;flex-wrap:wrap;color:var(--muted);font-size:13px;margin:14px 0 0}
+  .times{display:grid;gap:8px;margin-top:15px}
+  .time-option{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:11px 12px;border:1px solid #30375e;border-radius:13px;background:#10152a;
+  }
+  .time-option.chosen{border-color:#5bba8a;background:rgba(67,150,106,.12)}
+  .time-left{display:flex;align-items:center;gap:9px;min-width:0}
+  .time-num{
+    width:25px;height:25px;display:grid;place-items:center;border-radius:8px;
+    background:#252c52;color:#d7dbff;font-weight:800;font-size:12px;flex:0 0 auto
+  }
+  .count{color:#9fe6ff;font-size:12px;white-space:nowrap}
+  .note{
+    margin-top:13px;padding:11px 12px;border-radius:12px;
+    background:#0c1021;border-left:3px solid #55499d;color:#c2c8e9;font-size:13px;line-height:1.6
+  }
+  .card-actions{margin-top:16px;border-top:1px solid #252b4c;padding-top:14px}
+  .member-preview{margin-top:14px;color:var(--muted);font-size:13px}
+  .member-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .member-chip{padding:5px 8px;border-radius:9px;background:#242a4b;color:#dfe2ff;font-size:12px}
+  .overlay{
+    position:fixed;inset:0;background:rgba(3,5,13,.76);display:none;align-items:center;justify-content:center;
+    padding:20px;z-index:100;backdrop-filter:blur(5px)
+  }
+  .overlay.show{display:flex}
+  .modal{
+    width:min(680px,100%);max-height:92vh;overflow:auto;border:1px solid #3b426c;
+    border-radius:22px;background:#11152a;box-shadow:var(--shadow)
+  }
+  .modal.wide{width:min(1160px,100%)}
+  .modal-head{
+    position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;
+    gap:14px;padding:18px 20px;border-bottom:1px solid var(--line);background:#11152a
+  }
+  .modal-title{font-size:20px;font-weight:900}
+  .close{
+    width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:#181d37;color:#fff
+  }
+  .modal-body{padding:20px}
+  .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  .field.full{grid-column:1/-1}
+  label{display:block;font-size:13px;color:#cbd0ee;margin:0 0 7px;font-weight:700}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
+  .modal-foot{display:flex;gap:9px;justify-content:flex-end;padding:0 20px 20px}
+  .check-list{display:grid;gap:9px}
+  .check-row{
+    display:flex;gap:10px;align-items:flex-start;padding:11px;border:1px solid #30375c;border-radius:12px;background:#0e1225
+  }
+  .check-row input{width:18px;height:18px;flex:0 0 auto;margin-top:1px}
+  .manage-toolbar{
+    display:grid;grid-template-columns:1fr 1fr auto;gap:10px;padding-bottom:16px;border-bottom:1px solid var(--line)
+  }
+  .board{display:grid;grid-template-columns:260px 1fr;gap:14px;margin-top:16px}
+  .pool,.team{
+    min-height:160px;border:1px dashed #3a426d;border-radius:16px;background:#0c1022;padding:12px
+  }
+  .pool{min-height:450px}
+  .team-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .drop-title{font-weight:800;margin-bottom:10px;display:flex;justify-content:space-between;color:#dce0ff}
+  .player{
+    padding:10px 11px;border:1px solid #353d68;background:#181e3a;border-radius:12px;margin-bottom:8px;
+    cursor:grab;user-select:none
+  }
+  .player.dragging{opacity:.35}
+  .player-name{font-weight:800}
+  .player-sub{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.5}
+  .player-pref{font-size:11px;color:#9fe6ff;margin-top:5px}
+  .drop-over{outline:2px solid var(--accent);outline-offset:2px}
+  .danger-zone{
+    margin-top:18px;padding-top:16px;border-top:1px solid #3d2e43;display:flex;gap:9px;flex-wrap:wrap
+  }
+  .statusline{
+    position:fixed;right:18px;bottom:18px;z-index:200;display:grid;gap:8px;width:min(360px,calc(100vw - 36px))
+  }
+  .toast{
+    padding:12px 14px;border:1px solid #3d456f;border-radius:13px;background:#171c36;box-shadow:var(--shadow);
+    animation:toastin .18s ease
+  }
+  .toast.good{border-color:#46795f}.toast.bad{border-color:#8d4660}.toast.warn{border-color:#8c7440}
+  @keyframes toastin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .footer{
+    margin:25px 0 8px;padding:16px;color:#7f88b0;text-align:center;font-size:12px
+  }
+  .mini-divider{height:1px;background:var(--line);margin:16px 0}
+  .stat-boxes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+  .stat{padding:10px;border-radius:12px;background:#0c1021;border:1px solid #292f54;text-align:center}
+  .stat strong{display:block;font-size:18px}.stat span{font-size:11px;color:var(--muted)}
+  .codebox{padding:12px;border:1px solid #333a63;border-radius:12px;background:#0b0f20;color:#bac2ea;font-size:12px;line-height:1.6}
+  @media(max-width:900px){
+    .raid-grid{grid-template-columns:1fr}
+    .toolbar{grid-template-columns:1fr}
+    .header-actions{justify-content:flex-start}
+    header{position:static;align-items:flex-start;flex-direction:column}
+    .board{grid-template-columns:1fr}
+    .pool{min-height:160px}
+    .team-grid{grid-template-columns:1fr}
+    .manage-toolbar{grid-template-columns:1fr}
+  }
+  @media(max-width:640px){
+    .app{padding:12px}
+    .form-grid{grid-template-columns:1fr}
+    .field.full{grid-column:auto}
+    .stat-boxes{grid-template-columns:1fr 1fr 1fr}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <div class="moon"></div>
+      <div>
+        <h1>StarLune 每週 BOSS 突襲預約</h1>
+        <div class="subtitle">Practice · Expedition · Formal Raid Scheduler</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn primary" onclick="openCreate()">＋ 開啟新場次</button>
+      <button class="btn ghost" onclick="exportData()">匯出資料</button>
+      <button class="btn ghost" onclick="document.getElementById('importFile').click()">匯入資料</button>
+      <input id="importFile" type="file" accept=".json" hidden onchange="importData(event)">
+    </div>
+  </header>
+
+  <section class="toolbar">
+    <div>
+      <div class="week-title" id="weekTitle">本週突襲</div>
+      <div class="week-range" id="weekRange"></div>
+    </div>
+    <div class="week-actions">
+      <button class="btn small" onclick="changeWeek(-1)">← 上週</button>
+      <button class="btn small" onclick="goThisWeek()">本週</button>
+      <button class="btn small" onclick="changeWeek(1)">下週 →</button>
+    </div>
+    <select id="bossFilter" class="filter" onchange="render()">
+      <option value="ALL">全部 BOSS</option>
+      <option>拉圖斯</option>
+      <option>殘暴炎魔</option>
+      <option>困難拉圖斯</option>
+      <option>闇黑龍王</option>
+      <option>艾畢奈亞</option>
+    </select>
+  </section>
+
+  <main id="raidGrid" class="raid-grid"></main>
+
+  <div class="footer">
+    StarLune Guild Raid Board · 資料預設儲存在目前瀏覽器中
+  </div>
+</div>
+
+<div class="overlay" id="createModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">開啟新 BOSS 場次</div>
+      <button class="close" onclick="closeModal('createModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field">
+          <label>BOSS</label>
+          <select id="createBoss" onchange="refreshTypeOptions()">
+            <option>拉圖斯</option>
+            <option>殘暴炎魔</option>
+            <option>困難拉圖斯</option>
+            <option>闇黑龍王</option>
+            <option>艾畢奈亞</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>場次性質</label>
+          <select id="createType"></select>
+        </div>
+        <div class="field">
+          <label>開場玩家</label>
+          <input id="createOwner" maxlength="20" placeholder="角色名稱 / Discord 名稱">
+        </div>
+        <div class="field">
+          <label>場主密碼</label>
+          <input id="createOwnerPassword" type="password" minlength="4" maxlength="40" placeholder="之後安排隊伍時使用">
+          <div class="hint">至少 4 碼。只有開場者自己需要知道。</div>
+        </div>
+        <div class="field">
+          <label>候選時間 1</label>
+          <input id="time1" type="datetime-local">
+        </div>
+        <div class="field">
+          <label>候選時間 2</label>
+          <input id="time2" type="datetime-local">
+        </div>
+        <div class="field">
+          <label>候選時間 3</label>
+          <input id="time3" type="datetime-local">
+        </div>
+        <div class="field">
+          <label>每隊人數上限</label>
+          <select id="teamCapacity">
+            <option value="6" selected>6 人</option>
+            <option value="12">12 人</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label>場次說明（選填）</label>
+          <textarea id="createNote" maxlength="300" placeholder="例：請先熟悉機制、預計 22:00 前結束、需要主教／遠程等。"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('createModal')">取消</button>
+      <button class="btn primary" onclick="createRaid()">建立場次</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="signupModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">報名場次</div>
+        <div class="subtitle" id="signupRaidTitle"></div>
+      </div>
+      <button class="close" onclick="closeModal('signupModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field">
+          <label>玩家名稱</label>
+          <input id="signupName" maxlength="20" placeholder="請輸入角色名稱">
+        </div>
+        <div class="field">
+          <label>職業 / 定位（選填）</label>
+          <input id="signupRole" maxlength="30" placeholder="例：主教、遠程、近戰">
+        </div>
+        <div class="field">
+          <label>個人退出碼</label>
+          <input id="signupPin" type="password" inputmode="numeric" minlength="4" maxlength="12" placeholder="4～12 碼">
+          <div class="hint">之後修改報名或退出時使用，避免他人冒名刪除。</div>
+        </div>
+        <div class="field">
+          <label>備註（選填）</label>
+          <input id="signupNote" maxlength="80" placeholder="例：10 點後比較穩、可補位">
+        </div>
+        <div class="field full">
+          <label>我屬意 / 可以配合的時間（至少勾一個）</label>
+          <div id="signupTimes" class="check-list"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('signupModal')">取消</button>
+      <button class="btn primary" onclick="submitSignup()">確認報名</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="selfModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">修改 / 退出報名</div>
+        <div class="subtitle" id="selfRaidTitle"></div>
+      </div>
+      <button class="close" onclick="closeModal('selfModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field">
+          <label>玩家名稱</label>
+          <input id="selfName" maxlength="20">
+        </div>
+        <div class="field">
+          <label>個人退出碼</label>
+          <input id="selfPin" type="password" inputmode="numeric" maxlength="12">
+        </div>
+      </div>
+      <div class="hint" style="margin-top:10px">驗證成功後可修改你的時間偏好、定位、備註，或退出此場次。</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('selfModal')">取消</button>
+      <button class="btn primary" onclick="verifySelf()">驗證</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="editSignupModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">修改我的報名</div>
+      <button class="close" onclick="closeModal('editSignupModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field">
+          <label>玩家名稱</label>
+          <input id="editSignupName" disabled>
+        </div>
+        <div class="field">
+          <label>職業 / 定位</label>
+          <input id="editSignupRole" maxlength="30">
+        </div>
+        <div class="field full">
+          <label>備註</label>
+          <input id="editSignupNote" maxlength="80">
+        </div>
+        <div class="field full">
+          <label>可配合時間</label>
+          <div id="editSignupTimes" class="check-list"></div>
+        </div>
+      </div>
+      <div class="danger-zone">
+        <button class="btn danger" onclick="quitRaid()">退出這個場次</button>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('editSignupModal')">取消</button>
+      <button class="btn primary" onclick="saveSignupEdit()">儲存修改</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="authModal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">隊伍管理驗證</div>
+        <div class="subtitle">可使用「場主密碼」或「公會幹部密碼」</div>
+      </div>
+      <button class="close" onclick="closeModal('authModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <label>管理密碼</label>
+      <input id="managePassword" type="password" placeholder="輸入場主或幹部密碼" onkeydown="if(event.key==='Enter')verifyManager()">
+      <div class="hint">驗證成功後才能調整最終時間、分隊與場次資料。</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('authModal')">取消</button>
+      <button class="btn primary" onclick="verifyManager()">進入管理</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="manageModal">
+  <div class="modal wide">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="manageTitle">隊伍安排</div>
+        <div class="subtitle" id="manageSubtitle"></div>
+      </div>
+      <button class="close" onclick="closeManage()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="manage-toolbar">
+        <div>
+          <label>最終開打時間</label>
+          <select id="finalTimeSelect" onchange="setFinalTime(this.value)"></select>
+        </div>
+        <div>
+          <label>隊伍數量</label>
+          <select id="teamCountSelect" onchange="changeTeamCount(this.value)">
+            <option value="1">1 隊</option>
+            <option value="2" selected>2 隊</option>
+            <option value="3">3 隊</option>
+            <option value="4">4 隊</option>
+          </select>
+        </div>
+        <div style="align-self:end">
+          <button class="btn cyan" onclick="autoArrange()">依最終時間自動排隊</button>
+        </div>
+      </div>
+
+      <div class="board">
+        <section>
+          <div class="drop-title"><span>待安排</span><span id="poolCount">0</span></div>
+          <div class="pool" id="pool" data-team="pool"></div>
+        </section>
+        <section>
+          <div class="drop-title"><span>隊伍配置</span><span id="capacityHint"></span></div>
+          <div id="teamGrid" class="team-grid"></div>
+        </section>
+      </div>
+
+      <div class="danger-zone">
+        <button class="btn warn" onclick="clearAssignments()">全部退回待安排</button>
+        <button class="btn danger" onclick="deleteCurrentRaid()">刪除整個場次</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="statusline" class="statusline"></div>
+
+<script>
+const STORAGE_KEY = 'starlune_raid_board_v1';
+
+/*
+  公會幹部共用密碼預設為：StarLune2026!
+  頁面中只保存 SHA-256 雜湊，不保存明碼。
+  注意：純前端 HTML 的密碼只能作為「操作門檻」，不是伺服器等級的真正權限安全。
+*/
+const OFFICER_PASSWORD_HASH = 'f1b5538fe885972b9543c7e1103d4d9a07b8568069ed4b4b8f10e990d3754e30';
+
+const BOSSES = {
+  '拉圖斯': ['練習場','正式場'],
+  '殘暴炎魔': ['練習場','正式場'],
+  '困難拉圖斯': ['練習場','正式場'],
+  '闇黑龍王': ['拓荒場','正式場'],
+  '艾畢奈亞': ['拓荒場','正式場']
+};
+
+let raids = loadData();
+let weekOffset = 0;
+let activeRaidId = null;
+let activeSelfPlayerId = null;
+let managerSession = {raidId:null,authorized:false};
+let dragPlayerId = null;
+
+function uid(prefix='id'){
+  return prefix + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
+}
+
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  }catch(e){
+    console.error(e);
+    return [];
+  }
+}
+
+function saveData(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(raids));
+}
+
+function escapeHtml(v=''){
+  return String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+}
+
+function normalizeName(v=''){ return v.trim().toLocaleLowerCase('zh-Hant'); }
+
+async function sha256(text){
+  const data = new TextEncoder().encode(text);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function getMonday(date = new Date()){
+  const d = new Date(date);
+  d.setHours(0,0,0,0);
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() - day + 1);
+  return d;
+}
+
+function getCurrentWeekStart(){
+  const d = getMonday(new Date());
+  d.setDate(d.getDate() + weekOffset * 7);
+  return d;
+}
+
+function dateKey(d){
+  const local = new Date(d.getTime() - d.getTimezoneOffset()*60000);
+  return local.toISOString().slice(0,10);
+}
+
+function getWeekKey(date){
+  return dateKey(getMonday(new Date(date)));
+}
+
+function formatDateTime(value){
+  if(!value) return '未設定';
+  const d = new Date(value);
+  if(Number.isNaN(d.getTime())) return value;
+  const w = ['日','一','二','三','四','五','六'][d.getDay()];
+  return `${d.getMonth()+1}/${d.getDate()}（${w}） ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+function formatWeekRange(start){
+  const end = new Date(start); end.setDate(end.getDate()+6);
+  return `${start.getFullYear()}/${start.getMonth()+1}/${start.getDate()} ～ ${end.getFullYear()}/${end.getMonth()+1}/${end.getDate()}`;
+}
+
+function typeClass(type){
+  if(type==='練習場') return 'practice';
+  if(type==='拓荒場') return 'explore';
+  return 'formal';
+}
+
+function toast(msg,type=''){
+  const box = document.createElement('div');
+  box.className = 'toast ' + type;
+  box.textContent = msg;
+  document.getElementById('statusline').appendChild(box);
+  setTimeout(()=>box.remove(),3200);
+}
+
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+
+function refreshTypeOptions(){
+  const boss = document.getElementById('createBoss').value;
+  const sel = document.getElementById('createType');
+  sel.innerHTML = BOSSES[boss].map(x=>`<option>${x}</option>`).join('');
+}
+
+function openCreate(){
+  refreshTypeOptions();
+  const start = getCurrentWeekStart();
+  const defaultD = new Date(start); defaultD.setDate(defaultD.getDate()+4); defaultD.setHours(21,0,0,0);
+  const val = new Date(defaultD.getTime()-defaultD.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  document.getElementById('time1').value = val;
+  const d2 = new Date(defaultD); d2.setDate(d2.getDate()+1);
+  document.getElementById('time2').value = new Date(d2.getTime()-d2.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  const d3 = new Date(defaultD); d3.setDate(d3.getDate()+2);
+  document.getElementById('time3').value = new Date(d3.getTime()-d3.getTimezoneOffset()*60000).toISOString().slice(0,16);
+  openModal('createModal');
+}
+
+async function createRaid(){
+  const boss = document.getElementById('createBoss').value;
+  const type = document.getElementById('createType').value;
+  const owner = document.getElementById('createOwner').value.trim();
+  const password = document.getElementById('createOwnerPassword').value;
+  const times = [1,2,3].map(i=>document.getElementById('time'+i).value);
+  const note = document.getElementById('createNote').value.trim();
+  const teamCapacity = Number(document.getElementById('teamCapacity').value);
+
+  if(!owner) return toast('請填寫開場玩家名稱。','bad');
+  if(password.length < 4) return toast('場主密碼至少 4 碼。','bad');
+  if(times.some(x=>!x)) return toast('必須指定三個候選時間。','bad');
+  if(new Set(times).size !== 3) return toast('三個候選時間不可重複。','bad');
+  if(!BOSSES[boss].includes(type)) return toast('此 BOSS 不支援這個場次類型。','bad');
+
+  const targetWeek = dateKey(getCurrentWeekStart());
+  const invalidWeek = times.some(t=>getWeekKey(t)!==targetWeek);
+  if(invalidWeek) return toast('三個候選時間必須都在目前顯示的同一週內。','bad');
+
+  const sortedTimes = [...times].sort();
+  const raid = {
+    id:uid('raid'),
+    weekKey:targetWeek,
+    boss,type,owner,
+    ownerPasswordHash:await sha256(password),
+    times:sortedTimes,
+    finalTime:'',
+    note,
+    teamCapacity,
+    teamCount:2,
+    createdAt:new Date().toISOString(),
+    participants:[]
+  };
+  raids.push(raid);
+  saveData();
+  closeModal('createModal');
+
+  document.getElementById('createOwner').value='';
+  document.getElementById('createOwnerPassword').value='';
+  document.getElementById('createNote').value='';
+
+  render();
+  toast('場次已建立。','good');
+}
+
+function getRaid(id){ return raids.find(r=>r.id===id); }
+
+function render(){
+  const start = getCurrentWeekStart();
+  const weekKey = dateKey(start);
+  document.getElementById('weekRange').textContent = formatWeekRange(start);
+  document.getElementById('weekTitle').textContent = weekOffset===0 ? '本週突襲' : (weekOffset<0 ? `${Math.abs(weekOffset)} 週前` : `${weekOffset} 週後`);
+
+  const filter = document.getElementById('bossFilter').value;
+  let list = raids.filter(r=>r.weekKey===weekKey);
+  if(filter!=='ALL') list = list.filter(r=>r.boss===filter);
+  list.sort((a,b)=>(a.finalTime||a.times[0]).localeCompare(b.finalTime||b.times[0]));
+
+  const grid = document.getElementById('raidGrid');
+  if(!list.length){
+    grid.innerHTML = `<div class="empty">
+      <div style="font-size:34px;margin-bottom:10px">☾</div>
+      <div style="font-size:17px;color:#d8dcf8;font-weight:800">這週還沒有 BOSS 場次</div>
+      <div style="margin-top:7px">任何公會玩家都可以按上方「開啟新場次」。</div>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map(raid=>{
+    const counts = raid.times.map(t=>raid.participants.filter(p=>(p.preferences||[]).includes(t)).length);
+    const chips = raid.participants.slice(0,10).map(p=>`<span class="member-chip">${escapeHtml(p.name)}</span>`).join('');
+    const extra = raid.participants.length>10 ? `<span class="member-chip">+${raid.participants.length-10}</span>` : '';
+    const assigned = raid.participants.filter(p=>p.team && p.team!=='pool').length;
+    return `
+    <article class="raid-card">
+      <div class="raid-top">
+        <div>
+          <div class="boss-name">${escapeHtml(raid.boss)}</div>
+          <div class="badges">
+            <span class="badge ${typeClass(raid.type)}">${escapeHtml(raid.type)}</span>
+            ${raid.finalTime ? `<span class="badge locked">✓ 已定案</span>` : `<span class="badge">投票中</span>`}
+          </div>
+        </div>
+        <div style="text-align:right;color:#8d96be;font-size:12px">#${escapeHtml(raid.id.slice(-5).toUpperCase())}</div>
+      </div>
+
+      <div class="meta">
+        <span>開場：<b style="color:#e9ebff">${escapeHtml(raid.owner)}</b></span>
+        <span>報名：<b style="color:#e9ebff">${raid.participants.length}</b> 人</span>
+        <span>已編隊：<b style="color:#e9ebff">${assigned}</b> 人</span>
+      </div>
+
+      <div class="times">
+        ${raid.times.map((t,i)=>`
+          <div class="time-option ${raid.finalTime===t?'chosen':''}">
+            <div class="time-left">
+              <div class="time-num">${i+1}</div>
+              <div>${formatDateTime(t)} ${raid.finalTime===t?'<b style="color:#91f0ba">・最終時間</b>':''}</div>
+            </div>
+            <div class="count">${counts[i]} 人可配合</div>
+          </div>`).join('')}
+      </div>
+
+      ${raid.note ? `<div class="note">${escapeHtml(raid.note).replace(/\n/g,'<br>')}</div>` : ''}
+
+      <div class="stat-boxes">
+        <div class="stat"><strong>${raid.participants.length}</strong><span>報名人數</span></div>
+        <div class="stat"><strong>${raid.teamCount||2}</strong><span>預設隊伍</span></div>
+        <div class="stat"><strong>${raid.teamCapacity||6}</strong><span>每隊上限</span></div>
+      </div>
+
+      <div class="member-preview">
+        ${raid.participants.length ? '目前報名' : '尚未有人報名'}
+        <div class="member-chips">${chips}${extra}</div>
+      </div>
+
+      <div class="card-actions">
+        <button class="btn primary small" onclick="openSignup('${raid.id}')">＋ 我要報名</button>
+        <button class="btn small" onclick="openSelf('${raid.id}')">修改 / 退出</button>
+        <button class="btn cyan small" onclick="openManageAuth('${raid.id}')">隊伍安排</button>
+      </div>
+    </article>`;
+  }).join('');
+}
+
+function changeWeek(delta){ weekOffset += delta; render(); }
+function goThisWeek(){ weekOffset = 0; render(); }
+
+function openSignup(id){
+  const raid = getRaid(id); if(!raid) return;
+  activeRaidId = id;
+  document.getElementById('signupRaidTitle').textContent = `${raid.boss}｜${raid.type}`;
+  document.getElementById('signupName').value='';
+  document.getElementById('signupRole').value='';
+  document.getElementById('signupPin').value='';
+  document.getElementById('signupNote').value='';
+  document.getElementById('signupTimes').innerHTML = raid.times.map((t,i)=>`
+    <label class="check-row">
+      <input type="checkbox" name="signupTime" value="${escapeHtml(t)}">
+      <span><b>時間 ${i+1}</b><br><span class="hint">${formatDateTime(t)}</span></span>
+    </label>`).join('');
+  openModal('signupModal');
+}
+
+async function submitSignup(){
+  const raid = getRaid(activeRaidId); if(!raid) return;
+  const name = document.getElementById('signupName').value.trim();
+  const role = document.getElementById('signupRole').value.trim();
+  const pin = document.getElementById('signupPin').value;
+  const note = document.getElementById('signupNote').value.trim();
+  const prefs = [...document.querySelectorAll('input[name="signupTime"]:checked')].map(x=>x.value);
+
+  if(!name) return toast('請輸入玩家名稱。','bad');
+  if(pin.length<4 || pin.length>12) return toast('個人退出碼請設定為 4～12 碼。','bad');
+  if(!prefs.length) return toast('至少勾選一個可配合時間。','bad');
+  if(raid.participants.some(p=>normalizeName(p.name)===normalizeName(name)))
+    return toast('這個玩家名稱已經報名此場次。','bad');
+
+  raid.participants.push({
+    id:uid('p'),
+    name,role,note,
+    pinHash:await sha256(pin),
+    preferences:prefs,
+    team:'pool',
+    joinedAt:new Date().toISOString()
+  });
+  saveData();
+  closeModal('signupModal');
+  render();
+  toast(`${name} 報名成功。`,'good');
+}
+
+function openSelf(id){
+  activeRaidId=id;
+  activeSelfPlayerId=null;
+  const raid=getRaid(id); if(!raid) return;
+  document.getElementById('selfRaidTitle').textContent=`${raid.boss}｜${raid.type}`;
+  document.getElementById('selfName').value='';
+  document.getElementById('selfPin').value='';
+  openModal('selfModal');
+}
+
+async function verifySelf(){
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  const name=document.getElementById('selfName').value.trim();
+  const pin=document.getElementById('selfPin').value;
+  const p=raid.participants.find(x=>normalizeName(x.name)===normalizeName(name));
+  if(!p) return toast('找不到這個玩家的報名資料。','bad');
+  if(await sha256(pin)!==p.pinHash) return toast('個人退出碼錯誤。','bad');
+
+  activeSelfPlayerId=p.id;
+  closeModal('selfModal');
+  document.getElementById('editSignupName').value=p.name;
+  document.getElementById('editSignupRole').value=p.role||'';
+  document.getElementById('editSignupNote').value=p.note||'';
+  document.getElementById('editSignupTimes').innerHTML=raid.times.map((t,i)=>`
+    <label class="check-row">
+      <input type="checkbox" name="editSignupTime" value="${escapeHtml(t)}" ${(p.preferences||[]).includes(t)?'checked':''}>
+      <span><b>時間 ${i+1}</b><br><span class="hint">${formatDateTime(t)}</span></span>
+    </label>`).join('');
+  openModal('editSignupModal');
+}
+
+function saveSignupEdit(){
+  const raid=getRaid(activeRaidId);
+  const p=raid?.participants.find(x=>x.id===activeSelfPlayerId);
+  if(!p) return;
+  const prefs=[...document.querySelectorAll('input[name="editSignupTime"]:checked')].map(x=>x.value);
+  if(!prefs.length) return toast('至少保留一個可配合時間。','bad');
+  p.role=document.getElementById('editSignupRole').value.trim();
+  p.note=document.getElementById('editSignupNote').value.trim();
+  p.preferences=prefs;
+  saveData();
+  closeModal('editSignupModal');
+  render();
+  toast('報名資料已更新。','good');
+}
+
+function quitRaid(){
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  const p=raid.participants.find(x=>x.id===activeSelfPlayerId);
+  if(!p) return;
+  if(!confirm(`確定要讓「${p.name}」退出 ${raid.boss} ${raid.type} 嗎？`)) return;
+  raid.participants=raid.participants.filter(x=>x.id!==p.id);
+  saveData();
+  closeModal('editSignupModal');
+  render();
+  toast('已退出場次。','warn');
+}
+
+function openManageAuth(id){
+  activeRaidId=id;
+  managerSession={raidId:id,authorized:false};
+  document.getElementById('managePassword').value='';
+  openModal('authModal');
+}
+
+async function verifyManager(){
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  const pwd=document.getElementById('managePassword').value;
+  const hash=await sha256(pwd);
+  if(hash!==raid.ownerPasswordHash && hash!==OFFICER_PASSWORD_HASH){
+    return toast('管理密碼錯誤。','bad');
+  }
+  managerSession={raidId:raid.id,authorized:true};
+  closeModal('authModal');
+  openManager();
+}
+
+function requireManager(){
+  return managerSession.authorized && managerSession.raidId===activeRaidId;
+}
+
+function openManager(){
+  const raid=getRaid(activeRaidId); if(!raid || !requireManager()) return;
+  document.getElementById('manageTitle').textContent=`${raid.boss}｜${raid.type} 隊伍安排`;
+  document.getElementById('manageSubtitle').textContent=`開場：${raid.owner}｜共 ${raid.participants.length} 人報名`;
+  const ft=document.getElementById('finalTimeSelect');
+  ft.innerHTML=`<option value="">尚未定案</option>`+raid.times.map((t,i)=>`<option value="${escapeHtml(t)}" ${raid.finalTime===t?'selected':''}>時間 ${i+1}｜${formatDateTime(t)}</option>`).join('');
+  document.getElementById('teamCountSelect').value=String(raid.teamCount||2);
+  renderBoard();
+  openModal('manageModal');
+}
+
+function closeManage(){
+  closeModal('manageModal');
+  managerSession={raidId:null,authorized:false};
+}
+
+function setFinalTime(value){
+  if(!requireManager()) return;
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  if(value && !raid.times.includes(value)) return;
+  raid.finalTime=value;
+  saveData(); render(); renderBoard();
+  toast(value?'最終開打時間已鎖定。':'已取消最終時間。','good');
+}
+
+function changeTeamCount(v){
+  if(!requireManager()) return;
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  const next=Number(v);
+  raid.teamCount=next;
+  raid.participants.forEach(p=>{
+    if(typeof p.team==='string' && p.team.startsWith('team')){
+      const n=Number(p.team.replace('team',''));
+      if(n>next) p.team='pool';
+    }
+  });
+  saveData(); renderBoard(); render();
+}
+
+function playerCard(p,raid){
+  const prefText=(p.preferences||[]).map(t=>'①②③'[raid.times.indexOf(t)]||'').join('');
+  return `<div class="player" draggable="true" data-player="${p.id}">
+    <div class="player-name">${escapeHtml(p.name)}</div>
+    <div class="player-sub">${escapeHtml(p.role||'未填定位')}${p.note?` · ${escapeHtml(p.note)}`:''}</div>
+    <div class="player-pref">可配合：${prefText||'—'}${raid.finalTime ? ((p.preferences||[]).includes(raid.finalTime)?' · ✓ 可打最終時間':' · ⚠ 不含最終時間') : ''}</div>
+  </div>`;
+}
+
+function renderBoard(){
+  const raid=getRaid(activeRaidId); if(!raid || !requireManager()) return;
+  const teamCount=raid.teamCount||2;
+  const cap=raid.teamCapacity||6;
+
+  raid.participants.forEach(p=>{
+    if(!p.team) p.team='pool';
+    if(p.team!=='pool'){
+      const n=Number(String(p.team).replace('team',''));
+      if(!n || n>teamCount) p.team='pool';
+    }
+  });
+
+  const pool=raid.participants.filter(p=>p.team==='pool');
+  document.getElementById('poolCount').textContent=`${pool.length} 人`;
+  document.getElementById('capacityHint').textContent=`每隊最多 ${cap} 人`;
+  document.getElementById('pool').innerHTML=pool.map(p=>playerCard(p,raid)).join('') || `<div class="hint">所有人都已安排。</div>`;
+
+  const grid=document.getElementById('teamGrid');
+  grid.innerHTML=Array.from({length:teamCount},(_,i)=>{
+    const key='team'+(i+1);
+    const members=raid.participants.filter(p=>p.team===key);
+    return `<div class="team" data-team="${key}">
+      <div class="drop-title"><span>第 ${i+1} 隊</span><span>${members.length}/${cap}</span></div>
+      ${members.map(p=>playerCard(p,raid)).join('') || `<div class="hint">拖曳玩家到這裡</div>`}
+    </div>`;
+  }).join('');
+
+  bindDragDrop();
+}
+
+function bindDragDrop(){
+  document.querySelectorAll('.player').forEach(el=>{
+    el.addEventListener('dragstart',()=>{
+      dragPlayerId=el.dataset.player;
+      el.classList.add('dragging');
+    });
+    el.addEventListener('dragend',()=>{
+      dragPlayerId=null;el.classList.remove('dragging');
+      document.querySelectorAll('.drop-over').forEach(x=>x.classList.remove('drop-over'));
+    });
+  });
+  document.querySelectorAll('[data-team]').forEach(zone=>{
+    zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drop-over')});
+    zone.addEventListener('dragleave',()=>zone.classList.remove('drop-over'));
+    zone.addEventListener('drop',e=>{
+      e.preventDefault();zone.classList.remove('drop-over');
+      movePlayer(dragPlayerId,zone.dataset.team);
+    });
+  });
+}
+
+function movePlayer(playerId,target){
+  if(!requireManager() || !playerId) return;
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  const p=raid.participants.find(x=>x.id===playerId); if(!p) return;
+
+  if(target!=='pool'){
+    const current=raid.participants.filter(x=>x.team===target && x.id!==playerId).length;
+    if(current >= (raid.teamCapacity||6)) return toast('這一隊已達人數上限。','bad');
+  }
+  p.team=target;
+  saveData();renderBoard();render();
+}
+
+function clearAssignments(){
+  if(!requireManager()) return;
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  raid.participants.forEach(p=>p.team='pool');
+  saveData();renderBoard();render();
+  toast('所有玩家已退回待安排。','warn');
+}
+
+function autoArrange(){
+  if(!requireManager()) return;
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  if(!raid.finalTime) return toast('請先鎖定最終開打時間。','bad');
+
+  const eligible=raid.participants.filter(p=>(p.preferences||[]).includes(raid.finalTime));
+  const ineligible=raid.participants.filter(p=>!(p.preferences||[]).includes(raid.finalTime));
+  eligible.sort((a,b)=>(a.joinedAt||'').localeCompare(b.joinedAt||''));
+
+  eligible.forEach(p=>p.team='pool');
+  ineligible.forEach(p=>p.team='pool');
+
+  let teamIndex=1;
+  let fill=0;
+  const tc=raid.teamCount||2, cap=raid.teamCapacity||6;
+  eligible.forEach(p=>{
+    if(teamIndex>tc) return;
+    p.team='team'+teamIndex;
+    fill++;
+    if(fill>=cap){teamIndex++;fill=0}
+  });
+  saveData();renderBoard();render();
+  const overflow=eligible.filter(p=>p.team==='pool').length;
+  toast(overflow?`已自動安排，可打最終時間者中仍有 ${overflow} 人超出容量。`:'已依最終時間自動安排。',overflow?'warn':'good');
+}
+
+function deleteCurrentRaid(){
+  if(!requireManager()) return;
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  if(!confirm(`確定刪除「${raid.boss}｜${raid.type}」整個場次？此操作無法復原。`)) return;
+  raids=raids.filter(r=>r.id!==raid.id);
+  saveData();
+  closeModal('manageModal');
+  managerSession={raidId:null,authorized:false};
+  render();
+  toast('場次已刪除。','warn');
+}
+
+function exportData(){
+  const payload={
+    app:'StarLune Raid Board',
+    version:1,
+    exportedAt:new Date().toISOString(),
+    raids
+  };
+  const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`StarLune_BOSS_${dateKey(new Date())}.json`;
+  document.body.appendChild(a);a.click();a.remove();
+  URL.revokeObjectURL(a.href);
+  toast('資料已匯出。','good');
+}
+
+function importData(event){
+  const file=event.target.files?.[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const parsed=JSON.parse(reader.result);
+      const arr=Array.isArray(parsed)?parsed:parsed.raids;
+      if(!Array.isArray(arr)) throw new Error('格式錯誤');
+      if(!confirm(`將匯入 ${arr.length} 個場次並覆蓋目前資料，確定嗎？`)) return;
+      raids=arr;
+      saveData();render();
+      toast('資料匯入完成。','good');
+    }catch(e){toast('匯入失敗：不是有效的 StarLune JSON 資料。','bad')}
+    event.target.value='';
+  };
+  reader.readAsText(file,'utf-8');
+}
+
+document.querySelectorAll('.overlay').forEach(ov=>{
+  ov.addEventListener('mousedown',e=>{
+    if(e.target===ov){
+      if(ov.id==='manageModal') closeManage();
+      else closeModal(ov.id);
+    }
+  });
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    document.querySelectorAll('.overlay.show').forEach(ov=>{
+      if(ov.id==='manageModal') closeManage();
+      else closeModal(ov.id);
+    });
+  }
+});
+
+refreshTypeOptions();
+render();
+</script>
+</body>
+</html>
