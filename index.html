@@ -466,6 +466,12 @@
           <label>突襲規模</label>
           <div class="codebox" id="raidSizeDisplay">6 人（1 隊）</div>
         </div>
+        <div>
+          <label>強調文字</label>
+          <input id="highlightText" maxlength="40" placeholder="例：急徵１法師"
+                 onchange="setHighlightText(this.value)"
+                 onkeydown="if(event.key==='Enter'){this.blur();}">
+        </div>
         <div style="align-self:end">
           <button class="btn cyan" onclick="autoArrange()">依最終時間自動排隊</button>
         </div>
@@ -781,7 +787,7 @@ function render(){
     <article class="raid-card">
       <div class="raid-top">
         <div>
-          <div class="boss-name">${escapeHtml(raid.boss)}</div>
+          <div class="boss-name">${escapeHtml(raid.boss)}${raid.highlightText?` <span style="font-size:15px;font-weight:800;color:#ffd36b">（${escapeHtml(raid.highlightText)}）</span>`:''}</div>
           <div class="badges">
             <span class="badge ${typeClass(raid.type)}">${escapeHtml(raid.type)}</span>
             ${raid.finalTime ? `<span class="badge locked">✓ 已定案</span>` : `<span class="badge">投票中</span>`}
@@ -1050,6 +1056,7 @@ function openManager(){
   const effectiveTeamCount=Number(raid.raidSize)===12 ? 2 : 1;
   raid.teamCount=effectiveTeamCount;
   document.getElementById('raidSizeDisplay').textContent=`${Number(raid.raidSize)===12 ? 12 : 6} 人（${effectiveTeamCount} 隊）`;
+  document.getElementById('highlightText').value=raid.highlightText||'';
   renderBoard();
   openModal('manageModal');
 }
@@ -1057,6 +1064,20 @@ function openManager(){
 function closeManage(){
   closeModal('manageModal');
   managerSession={raidId:null,authorized:false};
+}
+
+async function setHighlightText(value){
+  if(!requireManager()) return;
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  raid.highlightText=String(value||'').trim().slice(0,40);
+  try{
+    await saveRaid(raid);
+  }catch(err){
+    console.error(err);
+    return toast('強調文字儲存失敗：'+err.message,'bad');
+  }
+  render();
+  toast(raid.highlightText?'強調文字已更新。':'強調文字已清除。','good');
 }
 
 async function setFinalTime(value){
