@@ -516,7 +516,7 @@
 
       <div class="board">
         <section>
-          <div class="drop-title"><span>待安排</span><span id="poolCount">0</span></div>
+          <div class="drop-title"><span>待安排（手機介面請雙擊兩下）</span><span id="poolCount">0</span></div>
           <div class="pool" id="pool" data-team="pool"></div>
         </section>
         <section>
@@ -1317,7 +1317,51 @@ function bindDragDrop(){
       dragPlayerId=null;el.classList.remove('dragging');
       document.querySelectorAll('.drop-over').forEach(x=>x.classList.remove('drop-over'));
     });
+
+    // 手機操作：快速點兩下玩家名牌，在「待安排」與「隊伍」間切換。
+    let lastTap=0;
+    el.addEventListener('touchend',e=>{
+      if(e.target.closest('.player-remove')) return;
+
+      const now=Date.now();
+      if(now-lastTap<=450){
+        e.preventDefault();
+        lastTap=0;
+
+        const raid=getRaid(activeRaidId);
+        const player=raid?.participants.find(p=>p.id===el.dataset.player);
+        if(!raid || !player || !requireManager()) return;
+
+        if(player.team && player.team!=='pool'){
+          movePlayer(player.id,'pool');
+          return;
+        }
+
+        const teamCount=Number(raid.raidSize)===12 ? 2 : 1;
+        const cap=raid.teamCapacity||6;
+        let targetTeam='';
+
+        for(let i=1;i<=teamCount;i++){
+          const key='team'+i;
+          const count=raid.participants.filter(p=>p.team===key).length;
+          if(count<cap){
+            targetTeam=key;
+            break;
+          }
+        }
+
+        if(!targetTeam){
+          toast('隊伍都已滿員。','bad');
+          return;
+        }
+
+        movePlayer(player.id,targetTeam);
+      }else{
+        lastTap=now;
+      }
+    },{passive:false});
   });
+
   document.querySelectorAll('[data-team]').forEach(zone=>{
     zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drop-over')});
     zone.addEventListener('dragleave',()=>zone.classList.remove('drop-over'));
