@@ -230,6 +230,18 @@
     .pool{min-height:160px}
     .team-grid{grid-template-columns:1fr}
     .manage-toolbar{grid-template-columns:1fr}
+    #manageModal.mobile-team-choice .modal-head,
+    #manageModal.mobile-team-choice .manage-toolbar,
+    #manageModal.mobile-team-choice .board > section:first-child,
+    #manageModal.mobile-team-choice .danger-zone{
+      opacity:.24;filter:grayscale(1);pointer-events:none
+    }
+    #manageModal.mobile-team-choice .team{
+      opacity:1;border:2px solid #ffd36b;background:rgba(255,211,107,.16);
+      box-shadow:0 0 0 3px rgba(255,211,107,.12);cursor:pointer
+    }
+    #manageModal.mobile-team-choice .team .drop-title{color:#ffe49b}
+    #manageModal.mobile-team-choice .team .player{pointer-events:none}
   }
   @media(max-width:640px){
     .app{padding:12px}
@@ -516,7 +528,7 @@
 
       <div class="board">
         <section>
-          <div class="drop-title"><span>待安排（手機介面請雙擊兩下）</span><span id="poolCount">0</span></div>
+          <div class="drop-title"><span>待安排</span><span id="poolCount">0</span></div>
           <div class="pool" id="pool" data-team="pool"></div>
         </section>
         <section>
@@ -575,6 +587,7 @@ let activeRaidId = null;
 let activeSelfPlayerId = null;
 let managerSession = {raidId:null,authorized:false};
 let dragPlayerId = null;
+let mobileTeamChoicePlayerId = null;
 
 function uid(prefix='id'){
   return prefix + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
@@ -1181,6 +1194,7 @@ function openManager(){
 }
 
 function closeManage(){
+  cancelMobileTeamChoice();
   closeModal('manageModal');
   managerSession={raidId:null,authorized:false};
 }
@@ -1307,6 +1321,17 @@ async function removeParticipant(playerId){
   }
 }
 
+function startMobileTeamChoice(playerId){
+  mobileTeamChoicePlayerId=playerId;
+  document.getElementById('manageModal').classList.add('mobile-team-choice');
+  toast('請點選第 1 隊或第 2 隊。','warn');
+}
+
+function cancelMobileTeamChoice(){
+  mobileTeamChoicePlayerId=null;
+  document.getElementById('manageModal')?.classList.remove('mobile-team-choice');
+}
+
 function bindDragDrop(){
   document.querySelectorAll('.player').forEach(el=>{
     el.addEventListener('dragstart',()=>{
@@ -1319,6 +1344,7 @@ function bindDragDrop(){
     });
 
     // 手機操作：快速點兩下玩家名牌，在「待安排」與「隊伍」間切換。
+    // 闇黑龍王 12 人場：待安排玩家雙擊後，改由管理者點選第 1 / 2 隊。
     let lastTap=0;
     el.addEventListener('touchend',e=>{
       if(e.target.closest('.player-remove')) return;
@@ -1333,11 +1359,18 @@ function bindDragDrop(){
         if(!raid || !player || !requireManager()) return;
 
         if(player.team && player.team!=='pool'){
+          cancelMobileTeamChoice();
           movePlayer(player.id,'pool');
           return;
         }
 
         const teamCount=Number(raid.raidSize)===12 ? 2 : 1;
+
+        if(raid.boss==='闇黑龍王' && teamCount===2){
+          startMobileTeamChoice(player.id);
+          return;
+        }
+
         const cap=raid.teamCapacity||6;
         let targetTeam='';
 
@@ -1368,6 +1401,32 @@ function bindDragDrop(){
     zone.addEventListener('drop',e=>{
       e.preventDefault();zone.classList.remove('drop-over');
       movePlayer(dragPlayerId,zone.dataset.team);
+    });
+
+    zone.addEventListener('click',async e=>{
+      if(!mobileTeamChoicePlayerId || zone.dataset.team==='pool') return;
+
+      const raid=getRaid(activeRaidId);
+      if(!raid || raid.boss!=='闇黑龍王' || Number(raid.raidSize)!==12) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const target=zone.dataset.team;
+      const cap=raid.teamCapacity||6;
+      const count=raid.participants.filter(p=>p.team===target && p.id!==mobileTeamChoicePlayerId).length;
+      if(count>=cap){
+        toast('這一隊已達人數上限，請選另一隊。','bad');
+        return;
+      }
+
+      const playerId=mobileTeamChoicePlayerId;
+      await movePlayer(playerId,target);
+
+      const latest=getRaid(activeRaidId)?.participants.find(p=>p.id===playerId);
+      if(latest?.team===target){
+        cancelMobileTeamChoice();
+      }
     });
   });
 }
