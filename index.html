@@ -95,6 +95,24 @@
     gap:16px;align-items:center;text-align:left;
   }
   .raid-summary:hover{background:rgba(158,136,255,.07)}
+  .raid-summary{position:relative;overflow:hidden;isolation:isolate}
+  .raid-summary-main,.raid-summary-meta{position:relative;z-index:2}
+  .raid-summary-boss-art{
+    position:absolute;
+    z-index:1;
+    right:40px;
+    top:50%;
+    transform:translateY(-50%);
+    width:260px;
+    height:96px;
+    object-fit:contain;
+    object-position:right center;
+    opacity:.42;
+    pointer-events:none;
+    user-select:none;
+    -webkit-mask-image:linear-gradient(to left,#000 52%,rgba(0,0,0,.9) 68%,transparent 100%);
+    mask-image:linear-gradient(to left,#000 52%,rgba(0,0,0,.9) 68%,transparent 100%);
+  }
   .raid-summary-main{display:flex;gap:10px;align-items:center;flex-wrap:wrap;min-width:0}
   .raid-summary-boss{font-size:17px;font-weight:900;color:#f3f4ff}
   .raid-summary-chain{
@@ -260,6 +278,14 @@
     .raid-grid{grid-template-columns:1fr}
     .raid-summary{grid-template-columns:1fr;gap:8px}
     .raid-summary-meta{justify-content:flex-start;gap:10px}
+    .raid-summary-boss-art{
+      width:170px;
+      height:92px;
+      right:10px;
+      opacity:.30;
+      -webkit-mask-image:linear-gradient(to left,#000 48%,rgba(0,0,0,.9) 65%,transparent 100%);
+      mask-image:linear-gradient(to left,#000 48%,rgba(0,0,0,.9) 65%,transparent 100%);
+    }
     .toolbar{grid-template-columns:1fr !important}
     .header-actions{justify-content:flex-start}
     header{position:static;align-items:flex-start;flex-direction:column}
@@ -666,6 +692,15 @@ const BOSSES = {
   '艾畢奈亞': ['拓荒場','正式場']
 };
 
+const BOSS_IMAGES = {
+  '武陵道場': 'images/mureung.png',
+  '拉圖斯': 'images/papulatus.png',
+  '殘暴炎魔': 'images/zakum.png',
+  '困難拉圖斯': 'images/hard_papulatus.png',
+  '闇黑龍王': 'images/horntail.png',
+  '艾畢奈亞': 'images/ephenia.png'
+};
+
 let raids = [];
 let authAction = 'manage';
 let activeRaidId = null;
@@ -1027,6 +1062,7 @@ function render(){
         </div>` : ''}
 
       <button type="button" class="raid-summary" onclick="toggleRaidDetails('${raid.id}')">
+        ${BOSS_IMAGES[raid.boss] ? `<img class="raid-summary-boss-art" src="${BOSS_IMAGES[raid.boss]}" alt="" aria-hidden="true" onerror="this.style.display='none'">` : ''}
         <span class="raid-summary-main">
           <span class="raid-summary-boss">${escapeHtml(raid.boss)}</span>
           ${raid.highlightText?`<span style="font-size:13px;font-weight:900;color:#ffd36b">（${escapeHtml(raid.highlightText)}）</span>`:''}
