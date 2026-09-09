@@ -655,6 +655,30 @@
   </div>
 </div>
 
+<div class="overlay" id="inviteModal">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">邀請外部玩家</div>
+        <div class="subtitle" id="inviteRaidTitle"></div>
+      </div>
+      <button class="close" onclick="closeModal('inviteModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <label>專屬邀請連結</label>
+      <input id="inviteLinkInput" type="text" readonly onclick="this.select()">
+      <div class="hint" style="margin-top:10px">
+        持有此連結的玩家只會看到這一個場次，可以查看場次資訊、報名或退出；
+        不會顯示其他 StarLune 場次、開場、隊伍管理或刪除功能。
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('inviteModal')">關閉</button>
+      <button class="btn primary" onclick="copyInviteLink()">複製邀請連結</button>
+    </div>
+  </div>
+</div>
+
 <div id="statusline" class="statusline"></div>
 
 <script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
@@ -710,6 +734,11 @@ let dragPlayerId = null;
 let mobileTeamChoicePlayerId = null;
 const expandedRaidIds = new Set();
 
+const inviteParams = new URLSearchParams(window.location.search);
+const inviteRaidId = inviteParams.get('invite') || '';
+const inviteToken = inviteParams.get('token') || '';
+const isInviteMode = !!(inviteRaidId && inviteToken);
+
 function uid(prefix='id'){
   return prefix + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
 }
@@ -724,6 +753,16 @@ async function deleteRaidById(id){
 }
 
 function syncRaidsFromFirestore(){
+  if(isInviteMode){
+    return raidsRef.doc(inviteRaidId).onSnapshot(doc=>{
+      raids = doc.exists ? [{...doc.data(),id:doc.id}] : [];
+      render();
+    }, err=>{
+      console.error(err);
+      toast('Firebase 連線失敗：' + err.message, 'bad');
+    });
+  }
+
   return raidsRef.onSnapshot(snapshot=>{
     raids = snapshot.docs.map(doc=>({
       ...doc.data(),
@@ -957,6 +996,72 @@ async function createRaid(){
   toast('場次已建立。','good');
 }
 
+function generateInviteToken(){
+  const bytes=new Uint8Array(18);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function openInvite(id){
+  const raid=getRaid(id); if(!raid) return;
+
+  let token=raid.inviteToken || '';
+  if(!token){
+    token=generateInviteToken();
+    raid.inviteToken=token;
+    try{
+      await saveRaid(raid);
+    }catch(err){
+      console.error(err);
+      return toast('邀請連結建立失敗：'+err.message,'bad');
+    }
+  }
+
+  const url=new URL(window.location.href);
+  url.search='';
+  url.hash='';
+  url.searchParams.set('invite',raid.id);
+  url.searchParams.set('token',token);
+
+  document.getElementById('inviteRaidTitle').textContent=`${raid.boss}｜${raid.type}`;
+  document.getElementById('inviteLinkInput').value=url.toString();
+  openModal('inviteModal');
+}
+
+async function copyInviteLink(){
+  const input=document.getElementById('inviteLinkInput');
+  const value=input.value;
+  if(!value) return;
+
+  try{
+    await navigator.clipboard.writeText(value);
+    toast('邀請連結已複製。','good');
+  }catch(err){
+    input.focus();
+    input.select();
+    try{
+      document.execCommand('copy');
+      toast('邀請連結已複製。','good');
+    }catch(e){
+      toast('無法自動複製，請長按或 Ctrl+C 複製連結。','warn');
+    }
+  }
+}
+
+function applyInviteModeChrome(){
+  if(!isInviteMode) return;
+
+  const headerActions=document.querySelector('.header-actions');
+  const toolbar=document.querySelector('.toolbar');
+  const title=document.querySelector('.brand h1');
+  const subtitle=document.querySelector('.brand .subtitle');
+
+  if(headerActions) headerActions.style.display='none';
+  if(toolbar) toolbar.style.display='none';
+  if(title) title.textContent='StarLune 外部玩家場次邀請';
+  if(subtitle) subtitle.textContent='External Raid Invitation';
+}
+
 function getRaid(id){ return raids.find(r=>r.id===id); }
 
 function getRaidTeamCount(raid){
@@ -1005,7 +1110,12 @@ function toggleRaidDetails(id){
 function render(){
   const filter = document.getElementById('bossFilter').value;
   let list = [...raids];
-  if(filter!=='ALL') list = list.filter(r=>r.boss===filter);
+
+  if(isInviteMode){
+    list=list.filter(r=>r.id===inviteRaidId && r.inviteToken===inviteToken);
+  }else if(filter!=='ALL'){
+    list = list.filter(r=>r.boss===filter);
+  }
 
   // 依場次真正發生時間排序：已定案用 finalTime，未定案用最早候選時間。
   list.sort((a,b)=>{
@@ -1016,11 +1126,17 @@ function render(){
 
   const grid = document.getElementById('raidGrid');
   if(!list.length){
-    grid.innerHTML = `<div class="empty">
-      <div style="font-size:34px;margin-bottom:10px">☾</div>
-      <div style="font-size:17px;color:#d8dcf8;font-weight:800">目前還沒有 BOSS 場次</div>
-      <div style="margin-top:7px">任何公會玩家都可以按上方「開啟新場次」。</div>
-    </div>`;
+    grid.innerHTML = isInviteMode
+      ? `<div class="empty">
+          <div style="font-size:34px;margin-bottom:10px">☾</div>
+          <div style="font-size:17px;color:#d8dcf8;font-weight:800">邀請連結無效或場次已不存在</div>
+          <div style="margin-top:7px">請向邀請你的 StarLune 玩家索取新的場次連結。</div>
+        </div>`
+      : `<div class="empty">
+          <div style="font-size:34px;margin-bottom:10px">☾</div>
+          <div style="font-size:17px;color:#d8dcf8;font-weight:800">目前還沒有 BOSS 場次</div>
+          <div style="margin-top:7px">任何公會玩家都可以按上方「開啟新場次」。</div>
+        </div>`;
     return;
   }
 
@@ -1040,7 +1156,7 @@ function render(){
     }).join('');
     const extra = participants.length>10 ? `<span class="member-chip">+${participants.length-10}</span>` : '';
     const assigned = participants.filter(p=>p.team && p.team!=='pool').length;
-    const expanded=expandedRaidIds.has(raid.id);
+    const expanded=isInviteMode ? true : expandedRaidIds.has(raid.id);
     const bestTime=getMostCompatibleTime(raid);
     const chainCount=Math.min(14,Math.max(1,Number(raid.continuousRaids)||1));
     const chainText=raid.boss==='武陵道場' ? '' : `<span class="raid-summary-chain">連 ${chainCount} 場</span>`;
@@ -1120,9 +1236,12 @@ function render(){
 
         <div class="card-actions">
           <button class="btn primary small" onclick="openSignup('${raid.id}')">＋ 我要報名</button>
+          ${isInviteMode ? '' : `<button class="btn good small" onclick="openInvite('${raid.id}')">邀請外人</button>`}
           <button class="btn small" onclick="openSelf('${raid.id}')">我要退出</button>
-          <button class="btn cyan small" onclick="openManageAuth('${raid.id}')">隊伍管理</button>
-          <button class="btn danger small" onclick="openDeleteAuth('${raid.id}')">刪除場次</button>
+          ${isInviteMode ? '' : `
+            <button class="btn cyan small" onclick="openManageAuth('${raid.id}')">隊伍管理</button>
+            <button class="btn danger small" onclick="openDeleteAuth('${raid.id}')">刪除場次</button>
+          `}
         </div>
       </div>
     </article>`;
@@ -1789,6 +1908,7 @@ document.addEventListener('keydown',e=>{
   }
 });
 
+applyInviteModeChrome();
 refreshTypeOptions();
 render();
 syncRaidsFromFirestore();
