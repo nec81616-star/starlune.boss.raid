@@ -1,0 +1,1921 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>StarLune｜BOSS突襲預約</title>
+<style>
+  :root{
+    --bg:#090b18;
+    --panel:#11152a;
+    --panel2:#171c36;
+    --line:#2a3158;
+    --text:#f6f7ff;
+    --muted:#9da5c9;
+    --accent:#9e88ff;
+    --accent2:#63d7ff;
+    --good:#73e2a7;
+    --warn:#ffd36b;
+    --danger:#ff6f91;
+    --shadow:0 18px 50px rgba(0,0,0,.35);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    min-height:100vh;
+    font-family:Inter,"Noto Sans TC","Microsoft JhengHei",system-ui,sans-serif;
+    background:
+      radial-gradient(circle at 15% 10%,rgba(158,136,255,.18),transparent 28%),
+      radial-gradient(circle at 85% 5%,rgba(99,215,255,.12),transparent 24%),
+      linear-gradient(180deg,#090b18 0%,#0c1020 60%,#080a15 100%);
+    color:var(--text);
+  }
+  button,input,select,textarea{font:inherit}
+  button{cursor:pointer}
+  .app{max-width:1440px;margin:auto;padding:26px}
+  header{
+    display:flex;gap:18px;align-items:center;justify-content:space-between;
+    padding:20px 22px;border:1px solid var(--line);border-radius:24px;
+    background:linear-gradient(135deg,rgba(22,27,56,.95),rgba(13,17,35,.92));
+    box-shadow:var(--shadow);position:sticky;top:12px;z-index:20;backdrop-filter:blur(14px)
+  }
+  .brand{display:flex;align-items:center;gap:14px}
+  .moon{
+    width:48px;height:48px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#fff 0 8%,#d7d1ff 9% 40%,#a187ff 41% 70%,#7059db 71%);
+    box-shadow:0 0 30px rgba(158,136,255,.55);
+    position:relative;
+  }
+  .moon:after{
+    content:"";position:absolute;width:33px;height:33px;border-radius:50%;
+    background:#12162c;right:-3px;top:-2px;
+  }
+  h1{margin:0;font-size:22px;letter-spacing:.5px}
+  .subtitle{font-size:13px;color:var(--muted);margin-top:4px}
+  .header-actions,.week-actions,.card-actions,.row-actions{display:flex;gap:9px;flex-wrap:wrap}
+  .btn{
+    border:1px solid var(--line);background:#171c35;color:var(--text);
+    padding:10px 14px;border-radius:12px;transition:.18s ease;
+  }
+  .btn:hover{transform:translateY(-1px);border-color:#6670a7}
+  .btn.primary{background:linear-gradient(135deg,#8f78ff,#6652d9);border-color:#9a86ff;font-weight:700}
+  .btn.cyan{background:linear-gradient(135deg,#2f96b8,#32668f);border-color:#58c9ed}
+  .btn.good{background:rgba(73,172,119,.16);border-color:rgba(115,226,167,.48);color:#baffd6}
+  .btn.warn{background:rgba(255,211,107,.12);border-color:rgba(255,211,107,.38);color:#ffe49b}
+  .btn.danger{background:rgba(255,111,145,.12);border-color:rgba(255,111,145,.38);color:#ffadc0}
+  .btn.ghost{background:transparent}
+  .btn.small{padding:7px 10px;font-size:13px;border-radius:10px}
+  .toolbar{
+    margin:22px 0;display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center
+  }
+  .week-title{font-size:19px;font-weight:800}
+  .week-range{color:var(--muted);font-size:13px;margin-top:3px}
+  .filter{min-width:160px}
+  select,input,textarea{
+    width:100%;border:1px solid var(--line);background:#0d1124;color:var(--text);
+    border-radius:12px;padding:11px 12px;outline:none;
+  }
+  select:focus,input:focus,textarea:focus{border-color:#8c7af2;box-shadow:0 0 0 3px rgba(158,136,255,.12)}
+  textarea{resize:vertical;min-height:92px}
+  .raid-grid{display:grid;grid-template-columns:1fr;gap:12px}
+  .empty{
+    grid-column:1/-1;text-align:center;padding:70px 24px;border:1px dashed #394069;border-radius:22px;
+    color:var(--muted);background:rgba(17,21,42,.5)
+  }
+  .raid-card{
+    border:1px solid var(--line);border-radius:18px;padding:0;
+    background:linear-gradient(180deg,rgba(20,25,50,.98),rgba(13,17,34,.98));
+    box-shadow:0 10px 26px rgba(0,0,0,.18);
+    position:relative;
+    overflow:hidden;
+  }
+  .raid-summary{
+    width:100%;border:0;background:transparent;color:var(--text);
+    padding:15px 18px;display:grid;grid-template-columns:minmax(0,1fr) auto;
+    gap:16px;align-items:center;text-align:left;
+  }
+  .raid-summary:hover{background:rgba(158,136,255,.07)}
+  .raid-summary{position:relative;overflow:hidden;isolation:isolate}
+  .raid-summary-main,.raid-summary-meta{position:relative;z-index:2}
+  .raid-summary-boss-art{
+    position:absolute;
+    z-index:1;
+    right:40px;
+    top:50%;
+    transform:translateY(-50%);
+    width:260px;
+    height:96px;
+    object-fit:contain;
+    object-position:right center;
+    opacity:.42;
+    pointer-events:none;
+    user-select:none;
+    -webkit-mask-image:linear-gradient(to left,#000 52%,rgba(0,0,0,.9) 68%,transparent 100%);
+    mask-image:linear-gradient(to left,#000 52%,rgba(0,0,0,.9) 68%,transparent 100%);
+  }
+  .raid-summary-main{display:flex;gap:10px;align-items:center;flex-wrap:wrap;min-width:0}
+  .raid-summary-boss{font-size:17px;font-weight:900;color:#f3f4ff}
+  .raid-summary-chain{
+    display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;
+    border:1px solid rgba(255,72,171,.6);background:rgba(255,72,171,.12);
+    color:#ff5caf;font-size:12px;font-weight:900
+  }
+  .raid-summary-note{color:#b8bfdc;font-size:13px;overflow-wrap:anywhere}
+  .raid-summary-meta{
+    display:flex;gap:15px;align-items:center;justify-content:flex-end;
+    flex-wrap:wrap;color:#9da5c9;font-size:12px
+  }
+  .raid-summary-meta b{color:#e9ebff}
+  .raid-summary-arrow{
+    width:28px;height:28px;display:grid;place-items:center;border-radius:9px;
+    border:1px solid #343c68;background:#151a34;color:#cfd4f7;font-size:12px
+  }
+  .raid-details{display:none;padding:0 18px 18px;border-top:1px solid #252b4c}
+  .raid-card.expanded .raid-details{display:block}
+  .raid-card.expanded .raid-summary{background:rgba(158,136,255,.055)}
+  .raid-card.expanded .raid-top{padding-top:16px}
+
+  .force-delete-overlay{
+    position:absolute;inset:0;z-index:8;
+    background:rgba(170,0,24,.72);
+    border:2px solid #ff4d63;
+    display:flex;align-items:center;justify-content:center;
+    text-align:center;padding:22px;
+    backdrop-filter:blur(2px);
+  }
+  .force-delete-box{
+    background:rgba(25,0,6,.88);
+    border:1px solid rgba(255,150,165,.65);
+    border-radius:16px;
+    padding:16px 18px;
+    color:#fff;
+    max-width:360px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  .force-delete-title{font-size:18px;font-weight:900;color:#ffbdc7}
+  .force-delete-countdown{font-size:26px;font-weight:900;margin-top:8px;letter-spacing:1px}
+  .force-delete-hint{font-size:12px;color:#ffd5dc;margin-top:6px;line-height:1.5}
+  .raid-top{display:flex;gap:12px;align-items:flex-start;justify-content:space-between}
+  .boss-name{font-size:21px;font-weight:900}
+  .badges{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px}
+  .badge{
+    display:inline-flex;align-items:center;gap:5px;padding:5px 9px;border-radius:999px;
+    font-size:12px;border:1px solid #3b426b;color:#cdd3f5;background:#191f3d
+  }
+  .badge.practice{border-color:#4b82a1;color:#a9e7ff}
+  .badge.explore{border-color:#8d6faf;color:#d8b6ff}
+  .badge.formal{border-color:#997744;color:#ffe0a0}
+  .badge.locked{border-color:#44785e;color:#adffd1}
+  .meta{display:flex;gap:18px;flex-wrap:wrap;color:var(--muted);font-size:13px;margin:14px 0 0}
+  .times{display:grid;gap:8px;margin-top:15px}
+  .time-option{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:11px 12px;border:1px solid #30375e;border-radius:13px;background:#10152a;
+  }
+  .time-option.chosen{border-color:#5bba8a;background:rgba(67,150,106,.12)}
+  .time-left{display:flex;align-items:center;gap:9px;min-width:0}
+  .time-num{
+    width:25px;height:25px;display:grid;place-items:center;border-radius:8px;
+    background:#252c52;color:#d7dbff;font-weight:800;font-size:12px;flex:0 0 auto
+  }
+  .count{color:#9fe6ff;font-size:12px;white-space:nowrap}
+  .note{
+    margin-top:13px;padding:11px 12px;border-radius:12px;
+    background:#0c1021;border-left:3px solid #55499d;color:#c2c8e9;font-size:13px;line-height:1.6
+  }
+  .card-actions{margin-top:16px;border-top:1px solid #252b4c;padding-top:14px}
+  .member-preview{margin-top:14px;color:var(--muted);font-size:13px}
+  .member-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+  .member-chip{padding:5px 8px;border-radius:9px;background:#242a4b;color:#dfe2ff;font-size:12px}
+  .member-chip.accepted{background:#d9a928;color:#1a1300;border:1px solid #ffd76a;font-weight:900}
+  .member-chip.rejected{background:#ff3f58;color:#fff;border:1px solid #ff8292;font-weight:900}
+  .candidate-times{display:grid;gap:9px;margin-bottom:9px}
+  .candidate-time-row{display:grid;grid-template-columns:1fr auto;gap:9px;align-items:center}
+  .candidate-time-row .btn{min-width:42px}
+  .player.accepted{border-color:#d9a928;background:rgba(217,169,40,.17)}
+  .player.rejected{border-color:#ff465d;background:rgba(255,63,88,.16)}
+  .player-remove{
+    border:1px solid rgba(255,111,145,.5);background:rgba(255,111,145,.12);color:#ffb1c2;
+    padding:5px 8px;border-radius:8px;font-size:11px;cursor:pointer;flex:0 0 auto
+  }
+  .player-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .overlay{
+    position:fixed;inset:0;background:rgba(3,5,13,.76);display:none;align-items:center;justify-content:center;
+    padding:20px;z-index:100;backdrop-filter:blur(5px)
+  }
+  .overlay.show{display:flex}
+  .modal{
+    width:min(680px,100%);max-height:92vh;overflow:auto;border:1px solid #3b426c;
+    border-radius:22px;background:#11152a;box-shadow:var(--shadow)
+  }
+  .modal.wide{width:min(1160px,100%)}
+  .modal-head{
+    position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;
+    gap:14px;padding:18px 20px;border-bottom:1px solid var(--line);background:#11152a
+  }
+  .modal-title{font-size:20px;font-weight:900}
+  .close{
+    width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:#181d37;color:#fff
+  }
+  .modal-body{padding:20px}
+  .form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+  .field.full{grid-column:1/-1}
+  label{display:block;font-size:13px;color:#cbd0ee;margin:0 0 7px;font-weight:700}
+  .hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
+  .modal-foot{display:flex;gap:9px;justify-content:flex-end;padding:0 20px 20px}
+  .check-list{display:grid;gap:9px}
+  .check-row{
+    display:flex;gap:10px;align-items:flex-start;padding:11px;border:1px solid #30375c;border-radius:12px;background:#0e1225
+  }
+  .check-row input{width:18px;height:18px;flex:0 0 auto;margin-top:1px}
+  .manage-toolbar{
+    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding-bottom:16px;border-bottom:1px solid var(--line)
+  }
+  .manage-final-time{grid-column:1}
+  .manage-size{grid-column:2}
+  .manage-spacer{grid-column:3}
+  .manage-note{grid-column:1}
+  .manage-highlight{grid-column:2}
+  .manage-continuous{grid-column:3}
+  .manage-auto{grid-column:1/-1}
+  .board{display:grid;grid-template-columns:260px 1fr;gap:14px;margin-top:16px}
+  .pool,.team{
+    min-height:160px;border:1px dashed #3a426d;border-radius:16px;background:#0c1022;padding:12px
+  }
+  .pool{min-height:450px}
+  .team-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .drop-title{font-weight:800;margin-bottom:10px;display:flex;justify-content:space-between;color:#dce0ff}
+  .player{
+    padding:10px 11px;border:1px solid #353d68;background:#181e3a;border-radius:12px;margin-bottom:8px;
+    cursor:grab;user-select:none
+  }
+  .player.dragging{opacity:.35}
+  .player-name{font-weight:800}
+  .player-sub{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.5}
+  .player-pref{font-size:11px;color:#9fe6ff;margin-top:5px}
+  .drop-over{outline:2px solid var(--accent);outline-offset:2px}
+  .danger-zone{
+    margin-top:18px;padding-top:16px;border-top:1px solid #3d2e43;display:flex;gap:9px;flex-wrap:wrap
+  }
+  .statusline{
+    position:fixed;right:18px;bottom:18px;z-index:200;display:grid;gap:8px;width:min(360px,calc(100vw - 36px))
+  }
+  .toast{
+    padding:12px 14px;border:1px solid #3d456f;border-radius:13px;background:#171c36;box-shadow:var(--shadow);
+    animation:toastin .18s ease
+  }
+  .toast.good{border-color:#46795f}.toast.bad{border-color:#8d4660}.toast.warn{border-color:#8c7440}
+  @keyframes toastin{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .footer{
+    margin:25px 0 8px;padding:16px;color:#7f88b0;text-align:center;font-size:12px
+  }
+  .mini-divider{height:1px;background:var(--line);margin:16px 0}
+  .stat-boxes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+  .stat{padding:10px;border-radius:12px;background:#0c1021;border:1px solid #292f54;text-align:center}
+  .stat strong{display:block;font-size:18px}.stat span{font-size:11px;color:var(--muted)}
+  .codebox{padding:12px;border:1px solid #333a63;border-radius:12px;background:#0b0f20;color:#bac2ea;font-size:12px;line-height:1.6}
+  @media(max-width:900px){
+    .raid-grid{grid-template-columns:1fr}
+    .raid-summary{grid-template-columns:1fr;gap:8px}
+    .raid-summary-meta{justify-content:flex-start;gap:10px}
+    .raid-summary-boss-art{
+      width:170px;
+      height:92px;
+      right:10px;
+      opacity:.30;
+      -webkit-mask-image:linear-gradient(to left,#000 48%,rgba(0,0,0,.9) 65%,transparent 100%);
+      mask-image:linear-gradient(to left,#000 48%,rgba(0,0,0,.9) 65%,transparent 100%);
+    }
+    .toolbar{grid-template-columns:1fr !important}
+    .header-actions{justify-content:flex-start}
+    header{position:static;align-items:flex-start;flex-direction:column}
+    .board{grid-template-columns:1fr}
+    .pool{min-height:160px}
+    .team-grid{grid-template-columns:1fr}
+    .manage-toolbar{grid-template-columns:1fr}
+    .manage-final-time,.manage-size,.manage-spacer,.manage-note,.manage-highlight,.manage-continuous,.manage-auto{grid-column:1 !important}
+    .manage-spacer{display:none}
+    #manageModal.mobile-team-choice .modal-head,
+    #manageModal.mobile-team-choice .manage-toolbar,
+    #manageModal.mobile-team-choice .board > section:first-child,
+    #manageModal.mobile-team-choice .danger-zone{
+      opacity:.24;filter:grayscale(1);pointer-events:none
+    }
+    #manageModal.mobile-team-choice .team{
+      opacity:1;border:2px solid #ffd36b;background:rgba(255,211,107,.16);
+      box-shadow:0 0 0 3px rgba(255,211,107,.12);cursor:pointer
+    }
+    #manageModal.mobile-team-choice .team .drop-title{color:#ffe49b}
+    #manageModal.mobile-team-choice .team .player{pointer-events:none}
+  }
+  @media(max-width:640px){
+    .app{padding:12px}
+    .form-grid{grid-template-columns:1fr}
+    .field.full{grid-column:auto}
+    .candidate-time-row{grid-template-columns:1fr auto}
+    .stat-boxes{grid-template-columns:1fr 1fr 1fr}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand">
+      <div class="moon"></div>
+      <div>
+        <h1>StarLune BOSS突襲預約</h1>
+        <div class="subtitle">Practice · Expedition · Formal Raid Scheduler</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn primary" onclick="openCreate()">＋ 開啟新場次</button>
+    </div>
+  </header>
+
+  <section class="toolbar" style="grid-template-columns:1fr auto">
+    <div>
+      <div class="week-title">所有突襲場次</div>
+    </div>
+    <select id="bossFilter" class="filter" onchange="render()">
+      <option value="ALL">全部 BOSS</option>
+      <option>武陵道場</option>
+      <option>拉圖斯</option>
+      <option>殘暴炎魔</option>
+      <option>困難拉圖斯</option>
+      <option>闇黑龍王</option>
+      <option>艾畢奈亞</option>
+    </select>
+  </section>
+
+  <main id="raidGrid" class="raid-grid"></main>
+
+  <div class="footer">
+    · StarLune Guild Raid Board ·
+  </div>
+</div>
+
+<div class="overlay" id="createModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">開啟新 BOSS 場次</div>
+      <button class="close" onclick="closeModal('createModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field">
+          <label>BOSS</label>
+          <select id="createBoss" onchange="refreshTypeOptions()">
+            <option>武陵道場</option>
+            <option>拉圖斯</option>
+            <option>殘暴炎魔</option>
+            <option>困難拉圖斯</option>
+            <option>闇黑龍王</option>
+            <option>艾畢奈亞</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>場次性質</label>
+          <select id="createType"></select>
+        </div>
+        <div class="field">
+          <label>開場玩家</label>
+          <input id="createOwner" maxlength="20" placeholder="角色名稱 / Discord 名稱">
+        </div>
+        <div class="field">
+          <label>場主密碼</label>
+          <input id="createOwnerPassword" type="password" minlength="4" maxlength="40" placeholder="之後安排隊伍時使用">
+          <div class="hint">至少 4 碼。只有開場者自己需要知道。</div>
+        </div>
+        <div class="field full">
+          <label>候選時間</label>
+          <div id="candidateTimes" class="candidate-times"></div>
+          <button type="button" class="btn small" id="addCandidateTimeBtn" onclick="addCandidateTime()">＋ 新增候選時間</button>
+          <div class="hint">預設 1 個候選時間；如有需要可自行新增，最多 3 個。</div>
+        </div>
+        <div class="field">
+          <label>突襲人數</label>
+          <select id="raidSize">
+            <option value="6" selected>6 人（1 隊）</option>
+            <option value="12">12 人（2 隊）</option>
+          </select>
+          <div class="hint" id="raidSizeHint">每隊固定 6 人；12 人場會自動分成 2 隊。</div>
+        </div>
+        <div class="field" id="continuousRaidField">
+          <label>連續突襲</label>
+          <select id="continuousRaids">
+            <option value="1" selected>1 場</option>
+            <option value="2">2 場</option>
+            <option value="3">3 場</option>
+            <option value="4">4 場</option>
+            <option value="5">5 場</option>
+            <option value="6">6 場</option>
+            <option value="7">7 場</option>
+            <option value="8">8 場</option>
+            <option value="9">9 場</option>
+            <option value="10">10 場</option>
+            <option value="11">11 場</option>
+            <option value="12">12 場</option>
+            <option value="13">13 場</option>
+            <option value="14">14 場</option>
+          </select>
+          <div class="hint">同一場次預計連續挑戰的次數。</div>
+        </div>
+        <div class="field full">
+          <label>場次說明（選填）</label>
+          <textarea id="createNote" maxlength="300" placeholder="例：請先熟悉機制、預計 22:00 前結束、需要主教／遠程等。"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('createModal')">取消</button>
+      <button class="btn primary" onclick="createRaid()">建立場次</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="signupModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">報名場次</div>
+        <div class="subtitle" id="signupRaidTitle"></div>
+      </div>
+      <button class="close" onclick="closeModal('signupModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field">
+          <label>玩家名稱</label>
+          <input id="signupName" maxlength="20" placeholder="請輸入角色名稱">
+        </div>
+        <div class="field">
+          <label>等級</label>
+          <input id="signupLevel" type="number" min="1" max="999" inputmode="numeric" placeholder="例：160">
+        </div>
+        <div class="field">
+          <label>職業</label>
+          <input id="signupRole" maxlength="30" placeholder="例：主教、神射手、英雄">
+        </div>
+        <div class="field">
+          <label>個人退出碼</label>
+          <input id="signupPin" type="password" inputmode="numeric" minlength="4" maxlength="12" placeholder="4～12 碼">
+          <div class="hint">之後修改報名或退出時使用，避免他人冒名刪除。</div>
+        </div>
+        <div class="field full">
+          <label>備註（選填）</label>
+          <input id="signupNote" maxlength="80" placeholder="例：10 點後比較穩、可補位">
+        </div>
+        <div class="field full">
+          <label>我屬意 / 可以配合的時間（至少勾一個）</label>
+          <div id="signupTimes" class="check-list"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('signupModal')">取消</button>
+      <button class="btn primary" onclick="submitSignup()">確認報名</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="selfModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">修改 / 退出報名</div>
+        <div class="subtitle" id="selfRaidTitle"></div>
+      </div>
+      <button class="close" onclick="closeModal('selfModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field">
+          <label>玩家名稱</label>
+          <input id="selfName" maxlength="20">
+        </div>
+        <div class="field">
+          <label>個人退出碼</label>
+          <input id="selfPin" type="password" inputmode="numeric" maxlength="12">
+        </div>
+      </div>
+      <div class="hint" style="margin-top:10px">驗證成功後可修改你的時間偏好、定位、備註，或退出此場次。</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('selfModal')">取消</button>
+      <button class="btn primary" onclick="verifySelf()">驗證</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="editSignupModal">
+  <div class="modal">
+    <div class="modal-head">
+      <div class="modal-title">修改我的報名</div>
+      <button class="close" onclick="closeModal('editSignupModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="field">
+          <label>玩家名稱</label>
+          <input id="editSignupName" disabled>
+        </div>
+        <div class="field">
+          <label>等級</label>
+          <input id="editSignupLevel" type="number" min="1" max="999" inputmode="numeric">
+        </div>
+        <div class="field">
+          <label>職業</label>
+          <input id="editSignupRole" maxlength="30">
+        </div>
+        <div class="field">
+          <label>備註（選填）</label>
+          <input id="editSignupNote" maxlength="80">
+        </div>
+        <div class="field full">
+          <label>可配合時間</label>
+          <div id="editSignupTimes" class="check-list"></div>
+        </div>
+      </div>
+      <div class="danger-zone">
+        <button class="btn danger" onclick="quitRaid()">退出這個場次</button>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('editSignupModal')">取消</button>
+      <button class="btn primary" onclick="saveSignupEdit()">儲存修改</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="authModal">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="authModalTitle">隊伍管理驗證</div>
+        <div class="subtitle" id="authModalSubtitle">可使用「場主密碼」或「公會幹部密碼」</div>
+      </div>
+      <button class="close" onclick="closeModal('authModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <label>管理密碼</label>
+      <input id="managePassword" type="password" placeholder="輸入場主或幹部密碼" onkeydown="if(event.key==='Enter')verifyManager()">
+      <div class="hint">驗證成功後才能調整最終時間、分隊與場次資料。</div>
+      <div id="forceDeleteArea" class="danger-zone" style="display:none">
+        <button type="button" class="btn danger" onclick="startForceDelete(activeRaidId)">強制刪除（6 小時倒數）</button>
+        <div class="hint">若開場玩家忘記密碼，可啟動強制刪除；場次將紅色遮罩並於 6 小時後刪除。</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('authModal')">取消</button>
+      <button class="btn primary" onclick="verifyManager()">進入管理</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="manageModal">
+  <div class="modal wide">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="manageTitle">隊伍安排</div>
+        <div class="subtitle" id="manageSubtitle"></div>
+      </div>
+      <button class="close" onclick="closeManage()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="manage-toolbar">
+        <div class="manage-final-time">
+          <label>最終開打時間</label>
+          <select id="finalTimeSelect" style="height:48px;box-sizing:border-box" onchange="setFinalTime(this.value)"></select>
+        </div>
+
+        <div class="manage-size" style="min-width:0">
+          <label>突襲規模</label>
+          <div class="codebox" id="raidSizeDisplay" style="width:100%;height:48px;box-sizing:border-box;display:flex;align-items:center">6 人（1 隊）</div>
+        </div>
+
+        <div class="manage-spacer"></div>
+
+        <div class="manage-note">
+          <label>修改備註</label>
+          <textarea id="manageNote" maxlength="300" placeholder="修改場次備註"
+                    style="width:100%;margin:0;display:block"
+                    onchange="setRaidNote(this.value)"></textarea>
+        </div>
+
+        <div class="manage-highlight" style="min-width:0">
+          <label>標題強調文字</label>
+          <input id="highlightText" maxlength="40" placeholder="例：急徵１法師"
+                 style="width:100%;height:48px;box-sizing:border-box"
+                 onchange="setHighlightText(this.value)"
+                 onkeydown="if(event.key==='Enter'){this.blur();}">
+        </div>
+
+        <div class="manage-continuous" id="manageContinuousField" style="min-width:0">
+          <label>連續突襲</label>
+          <select id="manageContinuousRaids" style="height:48px;box-sizing:border-box" onchange="setContinuousRaids(this.value)">
+            <option value="1">1 場</option>
+            <option value="2">2 場</option>
+            <option value="3">3 場</option>
+            <option value="4">4 場</option>
+            <option value="5">5 場</option>
+            <option value="6">6 場</option>
+            <option value="7">7 場</option>
+            <option value="8">8 場</option>
+            <option value="9">9 場</option>
+            <option value="10">10 場</option>
+            <option value="11">11 場</option>
+            <option value="12">12 場</option>
+            <option value="13">13 場</option>
+            <option value="14">14 場</option>
+          </select>
+          <div class="hint" id="manageContinuousHint">可調整 1～14 場。</div>
+        </div>
+
+        <div class="manage-auto">
+          <button class="btn cyan" style="width:100%;height:44px" onclick="autoArrange()">依最終時間自動排隊</button>
+        </div>
+      </div>
+
+      <div class="board">
+        <section>
+          <div class="drop-title"><span>待安排（手機介面請雙擊）</span><span id="poolCount">0</span></div>
+          <div class="pool" id="pool" data-team="pool"></div>
+        </section>
+        <section>
+          <div class="drop-title"><span>隊伍配置</span><span id="capacityHint"></span></div>
+          <div id="teamGrid" class="team-grid"></div>
+        </section>
+      </div>
+
+      <div class="danger-zone">
+        <button class="btn warn" onclick="clearAssignments()">全部退回待安排</button>
+        <button class="btn danger" onclick="deleteCurrentRaid()">刪除整個場次</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="inviteModal">
+  <div class="modal" style="max-width:620px">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">邀請外部玩家</div>
+        <div class="subtitle" id="inviteRaidTitle"></div>
+      </div>
+      <button class="close" onclick="closeModal('inviteModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <label>專屬邀請連結</label>
+      <input id="inviteLinkInput" type="text" readonly onclick="this.select()">
+      <div class="hint" style="margin-top:10px">
+        持有此連結的玩家只會看到這一個場次，可以查看場次資訊、報名或退出；
+        不會顯示其他 StarLune 場次、開場、隊伍管理或刪除功能。
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal('inviteModal')">關閉</button>
+      <button class="btn primary" onclick="copyInviteLink()">複製邀請連結</button>
+    </div>
+  </div>
+</div>
+
+<div id="statusline" class="statusline"></div>
+
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyB8BaHGVdC6lGLnIqta5CYERVB45R0oxZ8",
+  authDomain: "starlune-boss-raid.firebaseapp.com",
+  projectId: "starlune-boss-raid",
+  storageBucket: "starlune-boss-raid.firebasestorage.app",
+  messagingSenderId: "1006596070583",
+  appId: "1:1006596070583:web:aca5816acec653f844c132",
+  measurementId: "G-9K8KL5HR3W"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const raidsRef = db.collection('raids');
+
+const STORAGE_KEY = 'starlune_raid_board_v1';
+
+/*
+  公會幹部共用密碼預設為：StarLune2026!
+  頁面中只保存 SHA-256 雜湊，不保存明碼。
+  注意：純前端 HTML 的密碼只能作為「操作門檻」，不是伺服器等級的真正權限安全。
+*/
+const OFFICER_PASSWORD_HASH = 'f1b5538fe885972b9543c7e1103d4d9a07b8568069ed4b4b8f10e990d3754e30';
+
+const BOSSES = {
+  '武陵道場': ['練習場','正式場'],
+  '拉圖斯': ['練習場','正式場'],
+  '殘暴炎魔': ['練習場','正式場'],
+  '困難拉圖斯': ['練習場','正式場'],
+  '闇黑龍王': ['拓荒場','正式場'],
+  '艾畢奈亞': ['拓荒場','正式場']
+};
+
+const BOSS_IMAGES = {
+  '武陵道場': 'images/mureung.png',
+  '拉圖斯': 'images/papulatus.png',
+  '殘暴炎魔': 'images/zakum.png',
+  '困難拉圖斯': 'images/hard_papulatus.png',
+  '闇黑龍王': 'images/horntail.png',
+  '艾畢奈亞': 'images/ephenia.png'
+};
+
+let raids = [];
+let authAction = 'manage';
+let activeRaidId = null;
+let activeSelfPlayerId = null;
+let managerSession = {raidId:null,authorized:false};
+let dragPlayerId = null;
+let mobileTeamChoicePlayerId = null;
+const expandedRaidIds = new Set();
+
+const inviteParams = new URLSearchParams(window.location.search);
+const inviteRaidId = inviteParams.get('invite') || '';
+const inviteToken = inviteParams.get('token') || '';
+const isInviteMode = !!(inviteRaidId && inviteToken);
+
+function uid(prefix='id'){
+  return prefix + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8);
+}
+
+async function saveRaid(raid){
+  if(!raid?.id) throw new Error('缺少場次 ID');
+  await raidsRef.doc(raid.id).set(raid);
+}
+
+async function deleteRaidById(id){
+  await raidsRef.doc(id).delete();
+}
+
+function syncRaidsFromFirestore(){
+  if(isInviteMode){
+    return raidsRef.doc(inviteRaidId).onSnapshot(doc=>{
+      raids = doc.exists ? [{...doc.data(),id:doc.id}] : [];
+      render();
+    }, err=>{
+      console.error(err);
+      toast('Firebase 連線失敗：' + err.message, 'bad');
+    });
+  }
+
+  return raidsRef.onSnapshot(snapshot=>{
+    raids = snapshot.docs.map(doc=>({
+      ...doc.data(),
+      id: doc.id
+    }));
+
+    render();
+    deleteExpiredForceRaids();
+
+    if(managerSession.authorized && activeRaidId){
+      const active = getRaid(activeRaidId);
+      if(active && document.getElementById('manageModal').classList.contains('show')){
+        renderBoard();
+      }else if(!active && document.getElementById('manageModal').classList.contains('show')){
+        closeManage();
+      }
+    }
+  }, err=>{
+    console.error(err);
+    toast('Firebase 連線失敗：' + err.message, 'bad');
+  });
+}
+
+function escapeHtml(v=''){
+  return String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+}
+
+function normalizeName(v=''){ return v.trim().toLocaleLowerCase('zh-Hant'); }
+
+async function sha256(text){
+  const data = new TextEncoder().encode(text);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hashBuffer)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+function getMonday(date = new Date()){
+  const d = new Date(date);
+  d.setHours(0,0,0,0);
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() - day + 1);
+  return d;
+}
+
+function getCurrentWeekStart(){
+  const d = getMonday(new Date());
+  d.setDate(d.getDate() + weekOffset * 7);
+  return d;
+}
+
+function dateKey(d){
+  const local = new Date(d.getTime() - d.getTimezoneOffset()*60000);
+  return local.toISOString().slice(0,10);
+}
+
+function getWeekKey(date){
+  return dateKey(getMonday(new Date(date)));
+}
+
+function formatDateTime(value){
+  if(!value) return '未設定';
+  const d = new Date(value);
+  if(Number.isNaN(d.getTime())) return value;
+  const w = ['日','一','二','三','四','五','六'][d.getDay()];
+  return `${d.getMonth()+1}/${d.getDate()}（${w}） ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+}
+
+function formatWeekRange(start){
+  const end = new Date(start); end.setDate(end.getDate()+6);
+  return `${start.getFullYear()}/${start.getMonth()+1}/${start.getDate()} ～ ${end.getFullYear()}/${end.getMonth()+1}/${end.getDate()}`;
+}
+
+function typeClass(type){
+  if(type==='練習場') return 'practice';
+  if(type==='拓荒場') return 'explore';
+  return 'formal';
+}
+
+function toast(msg,type=''){
+  const box = document.createElement('div');
+  box.className = 'toast ' + type;
+  box.textContent = msg;
+  document.getElementById('statusline').appendChild(box);
+  setTimeout(()=>box.remove(),3200);
+}
+
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+
+function refreshTypeOptions(){
+  const boss = document.getElementById('createBoss').value;
+  const sel = document.getElementById('createType');
+  sel.innerHTML = BOSSES[boss].map(x=>`<option>${x}</option>`).join('');
+  refreshRaidCreateOptions();
+}
+
+function refreshRaidCreateOptions(){
+  const boss=document.getElementById('createBoss').value;
+  const raidSize=document.getElementById('raidSize');
+  const sizeHint=document.getElementById('raidSizeHint');
+  const continuousField=document.getElementById('continuousRaidField');
+  const continuous=document.getElementById('continuousRaids');
+
+  if(boss==='武陵道場'){
+    raidSize.innerHTML='<option value="4" selected>4 人（1 隊）</option>';
+    raidSize.disabled=true;
+    sizeHint.textContent='武陵道場限定 1～4 人，共 1 隊；隊伍上限固定為 4 人。';
+    continuous.value='1';
+    continuous.disabled=true;
+    continuousField.style.display='';
+    continuousField.querySelector('.hint').textContent='武陵道場不適用連續突襲。';
+  }else{
+    raidSize.disabled=false;
+    raidSize.innerHTML='<option value="6" selected>6 人（1 隊）</option><option value="12">12 人（2 隊）</option>';
+    sizeHint.textContent='每隊固定 6 人；12 人場會自動分成 2 隊。';
+    continuous.disabled=false;
+    continuousField.style.display='';
+    continuousField.querySelector('.hint').textContent='同一場次預計連續挑戰的次數。';
+  }
+}
+
+function candidateDefaultValue(addDays=0){
+  const d=new Date();
+  d.setDate(d.getDate()+1+addDays);
+  d.setHours(21,0,0,0);
+  return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+}
+
+function refreshCandidateTimeControls(){
+  const rows=[...document.querySelectorAll('#candidateTimes .candidate-time-row')];
+  rows.forEach((row,i)=>{
+    const label=row.querySelector('.candidate-time-label');
+    if(label) label.textContent=`時間 ${i+1}`;
+    const remove=row.querySelector('.remove-candidate-time');
+    if(remove) remove.style.display=rows.length>1?'inline-flex':'none';
+  });
+  const addBtn=document.getElementById('addCandidateTimeBtn');
+  if(addBtn) addBtn.disabled=rows.length>=3;
+}
+
+function addCandidateTime(value=''){
+  const box=document.getElementById('candidateTimes');
+  const count=box.querySelectorAll('.candidate-time-row').length;
+  if(count>=3) return toast('候選時間最多 3 個。','warn');
+
+  const row=document.createElement('div');
+  row.className='candidate-time-row';
+  row.innerHTML=`
+    <div>
+      <div class="candidate-time-label" style="font-size:12px;color:#9da5c9;margin-bottom:5px">時間 ${count+1}</div>
+      <input class="candidate-time-input" type="datetime-local">
+    </div>
+    <button type="button" class="btn danger small remove-candidate-time" title="移除這個候選時間">×</button>
+  `;
+  const input=row.querySelector('.candidate-time-input');
+  input.value=value || candidateDefaultValue(count);
+  row.querySelector('.remove-candidate-time').addEventListener('click',()=>{
+    row.remove();
+    refreshCandidateTimeControls();
+  });
+  box.appendChild(row);
+  refreshCandidateTimeControls();
+}
+
+function resetCandidateTimes(){
+  const box=document.getElementById('candidateTimes');
+  box.innerHTML='';
+  addCandidateTime(candidateDefaultValue(0));
+}
+
+function openCreate(){
+  const continuous=document.getElementById('continuousRaids');
+  if(continuous) continuous.value='1';
+  refreshTypeOptions();
+  resetCandidateTimes();
+  openModal('createModal');
+}
+
+async function createRaid(){
+  const boss = document.getElementById('createBoss').value;
+  const type = document.getElementById('createType').value;
+  const owner = document.getElementById('createOwner').value.trim();
+  const password = document.getElementById('createOwnerPassword').value;
+  const timeInputs=[...document.querySelectorAll('.candidate-time-input')];
+  const times=timeInputs.map(input=>input.value);
+  const note = document.getElementById('createNote').value.trim();
+  const isDojo = boss==='武陵道場';
+  const raidSize = isDojo ? 4 : Number(document.getElementById('raidSize').value);
+  const continuousRaids = isDojo ? 1 : Number(document.getElementById('continuousRaids').value);
+  const teamCapacity = isDojo ? 4 : 6;
+  const teamCount = raidSize === 12 ? 2 : 1;
+
+  if(!owner) return toast('請填寫開場玩家名稱。','bad');
+  if(password.length < 4) return toast('場主密碼至少 4 碼。','bad');
+  if(!times.length) return toast('至少需要一個候選時間。','bad');
+  if(times.some(x=>!x)) return toast('請填寫已新增的候選時間，或刪除空白欄位。','bad');
+  if(times.length>3) return toast('候選時間最多 3 個。','bad');
+  if(new Set(times).size !== times.length) return toast('候選時間不可重複。','bad');
+  if(!BOSSES[boss].includes(type)) return toast('此 BOSS 不支援這個場次類型。','bad');
+  if(!isDojo && (!Number.isInteger(continuousRaids) || continuousRaids<1 || continuousRaids>14)){
+    return toast('連續突襲請選擇 1～14 場。','bad');
+  }
+
+  const sortedTimes = [...times].sort();
+  const raid = {
+    id:uid('raid'),
+    boss,type,owner,
+    raidSize,
+    continuousRaids,
+    ownerPasswordHash:await sha256(password),
+    times:sortedTimes,
+    finalTime:'',
+    note,
+    teamCapacity,
+    teamCount,
+    createdAt:new Date().toISOString(),
+    participants:[]
+  };
+  try{
+    await saveRaid(raid);
+  }catch(err){
+    console.error(err);
+    return toast('建立場次失敗：' + err.message, 'bad');
+  }
+  closeModal('createModal');
+
+  document.getElementById('createOwner').value='';
+  document.getElementById('createOwnerPassword').value='';
+  document.getElementById('createNote').value='';
+
+  render();
+  toast('場次已建立。','good');
+}
+
+function generateInviteToken(){
+  const bytes=new Uint8Array(18);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes,b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+async function openInvite(id){
+  const raid=getRaid(id); if(!raid) return;
+
+  let token=raid.inviteToken || '';
+  if(!token){
+    token=generateInviteToken();
+    raid.inviteToken=token;
+    try{
+      await saveRaid(raid);
+    }catch(err){
+      console.error(err);
+      return toast('邀請連結建立失敗：'+err.message,'bad');
+    }
+  }
+
+  const url=new URL(window.location.href);
+  url.search='';
+  url.hash='';
+  url.searchParams.set('invite',raid.id);
+  url.searchParams.set('token',token);
+
+  document.getElementById('inviteRaidTitle').textContent=`${raid.boss}｜${raid.type}`;
+  document.getElementById('inviteLinkInput').value=url.toString();
+  openModal('inviteModal');
+}
+
+async function copyInviteLink(){
+  const input=document.getElementById('inviteLinkInput');
+  const value=input.value;
+  if(!value) return;
+
+  try{
+    await navigator.clipboard.writeText(value);
+    toast('邀請連結已複製。','good');
+  }catch(err){
+    input.focus();
+    input.select();
+    try{
+      document.execCommand('copy');
+      toast('邀請連結已複製。','good');
+    }catch(e){
+      toast('無法自動複製，請長按或 Ctrl+C 複製連結。','warn');
+    }
+  }
+}
+
+function applyInviteModeChrome(){
+  if(!isInviteMode) return;
+
+  const headerActions=document.querySelector('.header-actions');
+  const toolbar=document.querySelector('.toolbar');
+  const title=document.querySelector('.brand h1');
+  const subtitle=document.querySelector('.brand .subtitle');
+
+  if(headerActions) headerActions.style.display='none';
+  if(toolbar) toolbar.style.display='none';
+  if(title) title.textContent='StarLune 外部玩家場次邀請';
+  if(subtitle) subtitle.textContent='External Raid Invitation';
+}
+
+function getRaid(id){ return raids.find(r=>r.id===id); }
+
+function getRaidTeamCount(raid){
+  return Number(raid?.raidSize)===12 ? 2 : 1;
+}
+
+function getRaidTeamCapacity(raid){
+  if(raid?.boss==='武陵道場' || Number(raid?.raidSize)===4) return 4;
+  return Number(raid?.teamCapacity)||6;
+}
+
+function getRaidSizeNumber(raid){
+  if(raid?.boss==='武陵道場' || Number(raid?.raidSize)===4) return 4;
+  return Number(raid?.raidSize)===12 ? 12 : 6;
+}
+
+function getRaidEventTime(raid){
+  if(raid?.finalTime) return raid.finalTime;
+  const times=Array.isArray(raid?.times) ? raid.times.filter(Boolean).slice().sort() : [];
+  return times[0] || '9999-12-31T23:59';
+}
+
+function getMostCompatibleTime(raid){
+  const times=Array.isArray(raid?.times) ? raid.times.filter(Boolean) : [];
+  const participants=Array.isArray(raid?.participants) ? raid.participants : [];
+  if(!times.length) return '';
+  let bestTime=times[0];
+  let bestCount=-1;
+  times.forEach(t=>{
+    const count=participants.filter(p=>(p.preferences||[]).includes(t)).length;
+    if(count>bestCount || (count===bestCount && t<bestTime)){
+      bestTime=t;
+      bestCount=count;
+    }
+  });
+  return bestTime;
+}
+
+function toggleRaidDetails(id){
+  if(expandedRaidIds.has(id)) expandedRaidIds.delete(id);
+  else expandedRaidIds.add(id);
+  render();
+}
+
+
+function render(){
+  const filter = document.getElementById('bossFilter').value;
+  let list = [...raids];
+
+  if(isInviteMode){
+    list=list.filter(r=>r.id===inviteRaidId && r.inviteToken===inviteToken);
+  }else if(filter!=='ALL'){
+    list = list.filter(r=>r.boss===filter);
+  }
+
+  // 依場次真正發生時間排序：已定案用 finalTime，未定案用最早候選時間。
+  list.sort((a,b)=>{
+    const timeCompare=getRaidEventTime(a).localeCompare(getRaidEventTime(b));
+    if(timeCompare!==0) return timeCompare;
+    return String(a.createdAt||'').localeCompare(String(b.createdAt||''));
+  });
+
+  const grid = document.getElementById('raidGrid');
+  if(!list.length){
+    grid.innerHTML = isInviteMode
+      ? `<div class="empty">
+          <div style="font-size:34px;margin-bottom:10px">☾</div>
+          <div style="font-size:17px;color:#d8dcf8;font-weight:800">邀請連結無效或場次已不存在</div>
+          <div style="margin-top:7px">請向邀請你的 StarLune 玩家索取新的場次連結。</div>
+        </div>`
+      : `<div class="empty">
+          <div style="font-size:34px;margin-bottom:10px">☾</div>
+          <div style="font-size:17px;color:#d8dcf8;font-weight:800">目前還沒有 BOSS 場次</div>
+          <div style="margin-top:7px">任何公會玩家都可以按上方「開啟新場次」。</div>
+        </div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map(raid=>{
+    const participants=Array.isArray(raid.participants)?raid.participants:[];
+    const times=Array.isArray(raid.times)?raid.times:[];
+    const counts = times.map(t=>participants.filter(p=>(p.preferences||[]).includes(t)).length);
+    const chips = participants.slice(0,10).map(p=>{
+      const decided=!!raid.finalTime;
+      const accepted=decided && p.team && p.team!=='pool';
+      const statusClass=decided ? (accepted?'accepted':'rejected') : '';
+      const dragonTeam=accepted && raid.boss==='闇黑龍王' && Number(raid.raidSize)===12
+        ? `・第${String(p.team).replace('team','')}隊`
+        : '';
+      const statusText=decided ? (accepted?`（錄取${dragonTeam}）`:'（未錄取）') : '';
+      return `<span class="member-chip ${statusClass}">Lv.${escapeHtml(p.level||'—')}${escapeHtml(p.role||'')} | ${escapeHtml(p.name)}${statusText}</span>`;
+    }).join('');
+    const extra = participants.length>10 ? `<span class="member-chip">+${participants.length-10}</span>` : '';
+    const assigned = participants.filter(p=>p.team && p.team!=='pool').length;
+    const expanded=isInviteMode ? true : expandedRaidIds.has(raid.id);
+    const bestTime=getMostCompatibleTime(raid);
+    const chainCount=Math.min(14,Math.max(1,Number(raid.continuousRaids)||1));
+    const chainText=raid.boss==='武陵道場' ? '' : `<span class="raid-summary-chain">連 ${chainCount} 場</span>`;
+    const noteText=raid.note ? `<span class="raid-summary-note">（${escapeHtml(raid.note).replace(/\n/g,' ')}）</span>` : '';
+    const raidSize=getRaidSizeNumber(raid);
+    const teamCount=getRaidTeamCount(raid);
+
+    return `
+    <article class="raid-card ${expanded?'expanded':'collapsed'}">
+      ${raid.forceDeleteAt ? `
+        <div class="force-delete-overlay">
+          <div class="force-delete-box">
+            <div class="force-delete-title">⚠ 強制刪除倒數中</div>
+            <div class="force-delete-countdown" data-force-delete-id="${raid.id}" data-force-delete-at="${escapeHtml(raid.forceDeleteAt)}">--:--:--</div>
+            <div class="force-delete-hint">倒數結束後此場次將無條件刪除</div>
+            <button type="button" class="btn danger small" style="margin-top:12px"
+                    onclick="event.stopPropagation();cancelForceDelete('${raid.id}')">取消強制刪除</button>
+          </div>
+        </div>` : ''}
+
+      <button type="button" class="raid-summary" onclick="toggleRaidDetails('${raid.id}')">
+        ${BOSS_IMAGES[raid.boss] ? `<img class="raid-summary-boss-art" src="${BOSS_IMAGES[raid.boss]}" alt="" aria-hidden="true" onerror="this.style.display='none'">` : ''}
+        <span class="raid-summary-main">
+          <span class="raid-summary-boss">${escapeHtml(raid.boss)}</span>
+          ${raid.highlightText?`<span style="font-size:13px;font-weight:900;color:#ffd36b">（${escapeHtml(raid.highlightText)}）</span>`:''}
+          ${chainText}
+          ${noteText}
+        </span>
+        <span class="raid-summary-meta">
+          <span>場主：<b>${escapeHtml(raid.owner)}</b></span>
+          <span>最多可配合：<b>${bestTime?formatDateTime(bestTime):'未設定'}</b></span>
+          <span class="raid-summary-arrow">${expanded?'▲':'▼'}</span>
+        </span>
+      </button>
+
+      <div class="raid-details">
+        <div class="raid-top">
+          <div>
+            <div class="boss-name">${escapeHtml(raid.boss)}${raid.highlightText?` <span style="font-size:15px;font-weight:800;color:#ffd36b">（${escapeHtml(raid.highlightText)}）</span>`:''}</div>
+            <div class="badges">
+              <span class="badge ${typeClass(raid.type)}">${escapeHtml(raid.type)}</span>
+              ${raid.finalTime ? `<span class="badge locked">✓ 已定案</span>` : `<span class="badge">投票中</span>`}
+            </div>
+          </div>
+          <div style="text-align:right;color:#8d96be;font-size:12px">#${escapeHtml(raid.id.slice(-5).toUpperCase())}</div>
+        </div>
+
+        <div class="meta">
+          <span>開場：<b style="color:#e9ebff">${escapeHtml(raid.owner)}</b></span>
+          <span>報名：<b style="color:#e9ebff">${participants.length}</b> 人</span>
+          <span>已編隊：<b style="color:#e9ebff">${assigned}</b> 人</span>
+        </div>
+
+        <div class="times">
+          ${times.map((t,i)=>`
+            <div class="time-option ${raid.finalTime===t?'chosen':''}">
+              <div class="time-left">
+                <div class="time-num">${i+1}</div>
+                <div>${formatDateTime(t)} ${raid.finalTime===t?'<b style="color:#91f0ba">・最終時間</b>':''}</div>
+              </div>
+              <div class="count">${counts[i]} 人可配合</div>
+            </div>`).join('')}
+        </div>
+
+        ${raid.note ? `<div class="note">${escapeHtml(raid.note).replace(/\n/g,'<br>')}</div>` : ''}
+
+        <div class="stat-boxes">
+          <div class="stat"><strong>${participants.length}</strong><span>報名人數</span></div>
+          <div class="stat"><strong>${raidSize}</strong><span>突襲人數</span></div>
+          <div class="stat"><strong>${teamCount}</strong><span>隊伍數</span></div>
+        </div>
+
+        <div class="member-preview">
+          ${participants.length ? '目前報名' : '尚未有人報名'}
+          <div class="member-chips">${chips}${extra}</div>
+        </div>
+
+        <div class="card-actions">
+          <button class="btn primary small" onclick="openSignup('${raid.id}')">＋ 我要報名</button>
+          ${isInviteMode ? '' : `<button class="btn good small" onclick="openInvite('${raid.id}')">邀請外人</button>`}
+          <button class="btn small" onclick="openSelf('${raid.id}')">我要退出</button>
+          ${isInviteMode ? '' : `
+            <button class="btn cyan small" onclick="openManageAuth('${raid.id}')">隊伍管理</button>
+            <button class="btn danger small" onclick="openDeleteAuth('${raid.id}')">刪除場次</button>
+          `}
+        </div>
+      </div>
+    </article>`;
+  }).join('');
+
+  updateForceDeleteCountdowns();
+}
+
+function openSignup(id){
+  const raid = getRaid(id); if(!raid) return;
+  activeRaidId = id;
+  document.getElementById('signupRaidTitle').textContent = `${raid.boss}｜${raid.type}`;
+  document.getElementById('signupName').value='';
+  document.getElementById('signupLevel').value='';
+  document.getElementById('signupRole').value='';
+  document.getElementById('signupPin').value='';
+  document.getElementById('signupNote').value='';
+  document.getElementById('signupTimes').innerHTML = raid.times.map((t,i)=>`
+    <label class="check-row">
+      <input type="checkbox" name="signupTime" value="${escapeHtml(t)}">
+      <span><b>時間 ${i+1}</b><br><span class="hint">${formatDateTime(t)}</span></span>
+    </label>`).join('');
+  openModal('signupModal');
+}
+
+async function submitSignup(){
+  const raid = getRaid(activeRaidId); if(!raid) return;
+  const name = document.getElementById('signupName').value.trim();
+  const level = Number(document.getElementById('signupLevel').value);
+  const role = document.getElementById('signupRole').value.trim();
+  const pin = document.getElementById('signupPin').value;
+  const note = document.getElementById('signupNote').value.trim();
+  const prefs = [...document.querySelectorAll('input[name="signupTime"]:checked')].map(x=>x.value);
+
+  if(!name) return toast('請輸入玩家名稱。','bad');
+  if(!Number.isInteger(level) || level < 1 || level > 999) return toast('請輸入正確的角色等級。','bad');
+  if(!role) return toast('請輸入職業。','bad');
+  if(pin.length<4 || pin.length>12) return toast('個人退出碼請設定為 4～12 碼。','bad');
+  if(!prefs.length) return toast('至少勾選一個可配合時間。','bad');
+
+  const player = {
+    id:uid('p'),
+    name,level,role,note,
+    pinHash:await sha256(pin),
+    preferences:prefs,
+    team:'pool',
+    joinedAt:new Date().toISOString()
+  };
+
+  try{
+    await db.runTransaction(async tx=>{
+      const ref=raidsRef.doc(activeRaidId);
+      const snap=await tx.get(ref);
+      if(!snap.exists) throw new Error('場次已不存在');
+      const latest={...snap.data(), id:snap.id};
+      latest.participants=Array.isArray(latest.participants)?latest.participants:[];
+      if(latest.participants.some(p=>normalizeName(p.name)===normalizeName(name))){
+        throw new Error('DUPLICATE_PLAYER');
+      }
+      latest.participants.push(player);
+      tx.set(ref, latest);
+    });
+  }catch(err){
+    console.error(err);
+    if(err.message==='DUPLICATE_PLAYER') return toast('這個玩家名稱已經報名此場次。','bad');
+    return toast('報名失敗：' + err.message,'bad');
+  }
+
+  closeModal('signupModal');
+  toast(`${name} 報名成功。`,'good');
+}
+
+function openSelf(id){
+  activeRaidId=id;
+  activeSelfPlayerId=null;
+  const raid=getRaid(id); if(!raid) return;
+  document.getElementById('selfRaidTitle').textContent=`${raid.boss}｜${raid.type}`;
+  document.getElementById('selfName').value='';
+  document.getElementById('selfPin').value='';
+  openModal('selfModal');
+}
+
+async function verifySelf(){
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  const name=document.getElementById('selfName').value.trim();
+  const pin=document.getElementById('selfPin').value;
+  const p=raid.participants.find(x=>normalizeName(x.name)===normalizeName(name));
+  if(!p) return toast('找不到這個玩家的報名資料。','bad');
+  if(await sha256(pin)!==p.pinHash) return toast('個人退出碼錯誤。','bad');
+
+  activeSelfPlayerId=p.id;
+  closeModal('selfModal');
+  document.getElementById('editSignupName').value=p.name;
+  document.getElementById('editSignupLevel').value=p.level||'';
+  document.getElementById('editSignupRole').value=p.role||'';
+  document.getElementById('editSignupNote').value=p.note||'';
+  document.getElementById('editSignupTimes').innerHTML=raid.times.map((t,i)=>`
+    <label class="check-row">
+      <input type="checkbox" name="editSignupTime" value="${escapeHtml(t)}" ${(p.preferences||[]).includes(t)?'checked':''}>
+      <span><b>時間 ${i+1}</b><br><span class="hint">${formatDateTime(t)}</span></span>
+    </label>`).join('');
+  openModal('editSignupModal');
+}
+
+async function saveSignupEdit(){
+  const raid=getRaid(activeRaidId);
+  const p=raid?.participants.find(x=>x.id===activeSelfPlayerId);
+  if(!p) return;
+  const prefs=[...document.querySelectorAll('input[name="editSignupTime"]:checked')].map(x=>x.value);
+  if(!prefs.length) return toast('至少保留一個可配合時間。','bad');
+  const level=Number(document.getElementById('editSignupLevel').value);
+  const role=document.getElementById('editSignupRole').value.trim();
+  if(!Number.isInteger(level) || level < 1 || level > 999) return toast('請輸入正確的角色等級。','bad');
+  if(!role) return toast('職業不可留白。','bad');
+  const note=document.getElementById('editSignupNote').value.trim();
+
+  try{
+    await db.runTransaction(async tx=>{
+      const ref=raidsRef.doc(activeRaidId);
+      const snap=await tx.get(ref);
+      if(!snap.exists) throw new Error('場次已不存在');
+      const latest={...snap.data(), id:snap.id};
+      latest.participants=Array.isArray(latest.participants)?latest.participants:[];
+      const target=latest.participants.find(x=>x.id===activeSelfPlayerId);
+      if(!target) throw new Error('找不到報名資料');
+      target.level=level;
+      target.role=role;
+      target.note=note;
+      target.preferences=prefs;
+      tx.set(ref, latest);
+    });
+  }catch(err){
+    console.error(err);
+    return toast('更新失敗：' + err.message,'bad');
+  }
+
+  closeModal('editSignupModal');
+  toast('報名資料已更新。','good');
+}
+
+async function quitRaid(){
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  const p=raid.participants.find(x=>x.id===activeSelfPlayerId);
+  if(!p) return;
+  if(!confirm(`確定要讓「${p.name}」退出 ${raid.boss} ${raid.type} 嗎？`)) return;
+
+  try{
+    await db.runTransaction(async tx=>{
+      const ref=raidsRef.doc(activeRaidId);
+      const snap=await tx.get(ref);
+      if(!snap.exists) throw new Error('場次已不存在');
+      const latest={...snap.data(), id:snap.id};
+      latest.participants=(latest.participants||[]).filter(x=>x.id!==activeSelfPlayerId);
+      tx.set(ref, latest);
+    });
+  }catch(err){
+    console.error(err);
+    return toast('退出失敗：' + err.message,'bad');
+  }
+
+  closeModal('editSignupModal');
+  toast('已退出場次。','warn');
+}
+
+function openManageAuth(id){
+  activeRaidId=id;
+  authAction='manage';
+  managerSession={raidId:id,authorized:false};
+  document.getElementById('authModalTitle').textContent='隊伍管理驗證';
+  document.getElementById('authModalSubtitle').textContent='可使用「場主密碼」或「公會幹部密碼」';
+  document.getElementById('forceDeleteArea').style.display='none';
+  document.getElementById('managePassword').value='';
+  openModal('authModal');
+}
+
+async function cancelForceDelete(id){
+  const raid=getRaid(id); if(!raid) return;
+  if(!raid.forceDeleteAt) return;
+
+  const ok=confirm(`確定取消「${raid.boss}｜${raid.type}」的強制刪除倒數？`);
+  if(!ok) return;
+
+  delete raid.forceDeleteAt;
+  try{
+    await saveRaid(raid);
+    toast('已取消強制刪除。','good');
+  }catch(err){
+    console.error(err);
+    toast('取消強制刪除失敗：'+err.message,'bad');
+  }
+}
+
+async function startForceDelete(id){
+  const raid=getRaid(id); if(!raid) return;
+  if(raid.forceDeleteAt) return toast('此場次已在強制刪除倒數中。','warn');
+
+  const ok=confirm(`確定啟動「${raid.boss}｜${raid.type}」強制刪除？\n\n此功能不需要管理密碼。啟動後會紅色遮罩倒數 6 小時，時間到即刪除場次。`);
+  if(!ok) return;
+
+  raid.forceDeleteAt=new Date(Date.now()+6*60*60*1000).toISOString();
+  try{
+    await saveRaid(raid);
+    closeModal('authModal');
+    toast('已啟動強制刪除，6 小時後自動刪除。','warn');
+  }catch(err){
+    console.error(err);
+    toast('強制刪除設定失敗：'+err.message,'bad');
+  }
+}
+
+async function deleteExpiredForceRaids(){
+  const now=Date.now();
+  const expired=raids.filter(r=>r.forceDeleteAt && new Date(r.forceDeleteAt).getTime()<=now);
+  if(!expired.length) return;
+
+  for(const raid of expired){
+    try{
+      await deleteRaidById(raid.id);
+    }catch(err){
+      console.error('強制刪除失敗',raid.id,err);
+    }
+  }
+}
+
+function formatCountdown(ms){
+  if(ms<=0) return '00:00:00';
+  const total=Math.floor(ms/1000);
+  const h=Math.floor(total/3600);
+  const m=Math.floor((total%3600)/60);
+  const s=total%60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function updateForceDeleteCountdowns(){
+  const now=Date.now();
+  document.querySelectorAll('[data-force-delete-at]').forEach(el=>{
+    const at=new Date(el.dataset.forceDeleteAt).getTime();
+    el.textContent=formatCountdown(at-now);
+  });
+}
+
+function openDeleteAuth(id){
+  activeRaidId=id;
+  authAction='delete';
+  managerSession={raidId:id,authorized:false};
+  const raid=getRaid(id);
+  document.getElementById('authModalTitle').textContent='刪除場次驗證';
+  document.getElementById('authModalSubtitle').textContent=`${raid?.boss||''}｜${raid?.type||''}：打完後可直接刪除`;
+  document.getElementById('forceDeleteArea').style.display='flex';
+  document.getElementById('managePassword').value='';
+  openModal('authModal');
+}
+
+async function verifyManager(){
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  const pwd=document.getElementById('managePassword').value;
+  const hash=await sha256(pwd);
+  if(hash!==raid.ownerPasswordHash && hash!==OFFICER_PASSWORD_HASH){
+    return toast('管理密碼錯誤。','bad');
+  }
+  managerSession={raidId:raid.id,authorized:true};
+  closeModal('authModal');
+
+  if(authAction==='delete'){
+    if(!confirm(`確定刪除「${raid.boss}｜${raid.type}」場次？\n\n打完後刪除即可，此操作無法復原。`)){
+      managerSession={raidId:null,authorized:false};
+      return;
+    }
+    try{
+      await deleteRaidById(raid.id);
+    }catch(err){
+      console.error(err);
+      managerSession={raidId:null,authorized:false};
+      return toast('刪除失敗：' + err.message,'bad');
+    }
+    managerSession={raidId:null,authorized:false};
+    toast('場次已刪除。','warn');
+    return;
+  }
+
+  openManager();
+}
+
+function requireManager(){
+  return managerSession.authorized && managerSession.raidId===activeRaidId;
+}
+
+function openManager(){
+  const raid=getRaid(activeRaidId); if(!raid || !requireManager()) return;
+  document.getElementById('manageTitle').textContent=`${raid.boss}｜${raid.type} 隊伍管理`;
+  document.getElementById('manageSubtitle').textContent=`開場：${raid.owner}｜共 ${raid.participants.length} 人報名`;
+  const ft=document.getElementById('finalTimeSelect');
+  ft.innerHTML=`<option value="">尚未定案</option>`+raid.times.map((t,i)=>`<option value="${escapeHtml(t)}" ${raid.finalTime===t?'selected':''}>時間 ${i+1}｜${formatDateTime(t)}</option>`).join('');
+  const effectiveTeamCount=getRaidTeamCount(raid);
+  raid.teamCount=effectiveTeamCount;
+  document.getElementById('raidSizeDisplay').textContent=`${getRaidSizeNumber(raid)} 人（${effectiveTeamCount} 隊）`;
+  document.getElementById('highlightText').value=raid.highlightText||'';
+  document.getElementById('manageNote').value=raid.note||'';
+
+  const manageContinuous=document.getElementById('manageContinuousRaids');
+  const manageContinuousHint=document.getElementById('manageContinuousHint');
+  const currentContinuous=Math.min(14,Math.max(1,Number(raid.continuousRaids)||1));
+  manageContinuous.value=String(currentContinuous);
+
+  if(raid.boss==='武陵道場'){
+    manageContinuous.value='1';
+    manageContinuous.disabled=true;
+    manageContinuousHint.textContent='武陵道場不適用連續突襲。';
+  }else{
+    manageContinuous.disabled=false;
+    manageContinuousHint.textContent='可調整 1～14 場。';
+  }
+
+  renderBoard();
+  openModal('manageModal');
+}
+
+function closeManage(){
+  cancelMobileTeamChoice();
+  closeModal('manageModal');
+  managerSession={raidId:null,authorized:false};
+}
+
+async function setHighlightText(value){
+  if(!requireManager()) return;
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  raid.highlightText=String(value||'').trim().slice(0,40);
+  try{
+    await saveRaid(raid);
+  }catch(err){
+    console.error(err);
+    return toast('強調文字儲存失敗：'+err.message,'bad');
+  }
+  render();
+  toast(raid.highlightText?'強調文字已更新。':'強調文字已清除。','good');
+}
+
+async function setRaidNote(value){
+  if(!requireManager()) return;
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  raid.note=String(value||'').trim().slice(0,300);
+  try{
+    await saveRaid(raid);
+  }catch(err){
+    console.error(err);
+    return toast('備註儲存失敗：'+err.message,'bad');
+  }
+  render();
+  toast('備註已更新。','good');
+}
+
+async function setContinuousRaids(value){
+  if(!requireManager()) return;
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  if(raid.boss==='武陵道場') return;
+
+  const n=Number(value);
+  if(!Number.isInteger(n) || n<1 || n>14){
+    return toast('連續突襲請選擇 1～14 場。','bad');
+  }
+
+  raid.continuousRaids=n;
+  try{
+    await saveRaid(raid);
+  }catch(err){
+    console.error(err);
+    return toast('連續突襲儲存失敗：'+err.message,'bad');
+  }
+
+  render();
+  toast(`連續突襲已更新為 ${n} 場。`,'good');
+}
+
+async function setFinalTime(value){
+  if(!requireManager()) return;
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  if(value && !raid.times.includes(value)) return;
+
+  const changed=raid.finalTime!==value;
+  raid.finalTime=value;
+
+  if(changed){
+    raid.participants.forEach(p=>p.team='pool');
+  }
+
+  try{ await saveRaid(raid); }catch(err){ console.error(err); return toast('儲存失敗：'+err.message,'bad'); }
+  render(); renderBoard();
+
+  if(changed){
+    toast(value?'最終開打時間已更新，所有玩家已撤回待安排。':'已取消最終時間，所有玩家已撤回待安排。','good');
+  }
+}
+
+function playerCard(p,raid){
+  const prefText=(p.preferences||[]).map(t=>'①②③'[raid.times.indexOf(t)]||'').join('');
+  const decided=!!raid.finalTime;
+  const accepted=decided && p.team && p.team!=='pool';
+  const statusClass=decided ? (accepted?'accepted':'rejected') : '';
+  const dragonTeam=accepted && raid.boss==='闇黑龍王' && Number(raid.raidSize)===12
+    ? `・第${String(p.team).replace('team','')}隊`
+    : '';
+  const statusText=decided ? (accepted?`（錄取${dragonTeam}）`:'（未錄取）') : '';
+  return `<div class="player ${statusClass}" draggable="true" data-player="${p.id}">
+    <div class="player-head">
+      <div class="player-name">Lv.${escapeHtml(p.level||'—')}${escapeHtml(p.role||'')} | ${escapeHtml(p.name)}${statusText}</div>
+      <button type="button" class="player-remove" onclick="event.preventDefault();event.stopPropagation();removeParticipant('${p.id}')">刪除</button>
+    </div>
+    <div class="player-sub">${p.note?escapeHtml(p.note):''}</div>
+    <div class="player-pref">可配合：${prefText||'—'}${raid.finalTime ? (accepted?' · ✓ 可打最終時間':' · ⚠ 不含最終時間') : ''}</div>
+  </div>`;
+}
+
+function renderBoard(){
+  const raid=getRaid(activeRaidId); if(!raid || !requireManager()) return;
+  const teamCount=getRaidTeamCount(raid);
+  raid.teamCount=teamCount;
+  const cap=getRaidTeamCapacity(raid);
+
+  raid.participants.forEach(p=>{
+    if(!p.team) p.team='pool';
+    if(p.team!=='pool'){
+      const n=Number(String(p.team).replace('team',''));
+      if(!n || n>teamCount) p.team='pool';
+    }
+  });
+
+  const pool=raid.participants.filter(p=>p.team==='pool');
+  document.getElementById('poolCount').textContent=`${pool.length} 人`;
+  document.getElementById('capacityHint').textContent=`每隊最多 ${cap} 人`;
+  document.getElementById('pool').innerHTML=pool.map(p=>playerCard(p,raid)).join('') || `<div class="hint">所有人都已安排。</div>`;
+
+  const grid=document.getElementById('teamGrid');
+  grid.innerHTML=Array.from({length:teamCount},(_,i)=>{
+    const key='team'+(i+1);
+    const members=raid.participants.filter(p=>p.team===key);
+    return `<div class="team" data-team="${key}">
+      <div class="drop-title"><span>第 ${i+1} 隊</span><span>${members.length}/${cap}</span></div>
+      ${members.map(p=>playerCard(p,raid)).join('') || `<div class="hint">拖曳玩家到這裡</div>`}
+    </div>`;
+  }).join('');
+
+  bindDragDrop();
+}
+
+async function removeParticipant(playerId){
+  if(!requireManager()) return toast('請先通過管理密碼驗證。','bad');
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  const player=(raid.participants||[]).find(p=>p.id===playerId);
+  if(!player) return toast('找不到這名玩家。','bad');
+  if(!confirm(`確定要從此場次刪除「${player.name}」嗎？`)) return;
+
+  try{
+    await db.runTransaction(async tx=>{
+      const ref=raidsRef.doc(activeRaidId);
+      const snap=await tx.get(ref);
+      if(!snap.exists) throw new Error('場次已不存在');
+      const latest={...snap.data(),id:snap.id};
+      latest.participants=(latest.participants||[]).filter(p=>p.id!==playerId);
+      tx.set(ref,latest);
+    });
+    toast(`已刪除玩家：${player.name}`,'warn');
+  }catch(err){
+    console.error(err);
+    toast('刪除玩家失敗：'+err.message,'bad');
+  }
+}
+
+function startMobileTeamChoice(playerId){
+  mobileTeamChoicePlayerId=playerId;
+  document.getElementById('manageModal').classList.add('mobile-team-choice');
+  toast('請點選第 1 隊或第 2 隊。','warn');
+}
+
+function cancelMobileTeamChoice(){
+  mobileTeamChoicePlayerId=null;
+  document.getElementById('manageModal')?.classList.remove('mobile-team-choice');
+}
+
+function bindDragDrop(){
+  document.querySelectorAll('.player').forEach(el=>{
+    el.addEventListener('dragstart',()=>{
+      dragPlayerId=el.dataset.player;
+      el.classList.add('dragging');
+    });
+    el.addEventListener('dragend',()=>{
+      dragPlayerId=null;el.classList.remove('dragging');
+      document.querySelectorAll('.drop-over').forEach(x=>x.classList.remove('drop-over'));
+    });
+
+    // 手機操作：快速點兩下玩家名牌，在「待安排」與「隊伍」間切換。
+    // 闇黑龍王 12 人場：待安排玩家雙擊後，改由管理者點選第 1 / 2 隊。
+    let lastTap=0;
+    el.addEventListener('touchend',e=>{
+      if(e.target.closest('.player-remove')) return;
+
+      const now=Date.now();
+      if(now-lastTap<=450){
+        e.preventDefault();
+        lastTap=0;
+
+        const raid=getRaid(activeRaidId);
+        const player=raid?.participants.find(p=>p.id===el.dataset.player);
+        if(!raid || !player || !requireManager()) return;
+
+        if(player.team && player.team!=='pool'){
+          cancelMobileTeamChoice();
+          movePlayer(player.id,'pool');
+          return;
+        }
+
+        const teamCount=getRaidTeamCount(raid);
+
+        if(raid.boss==='闇黑龍王' && teamCount===2){
+          startMobileTeamChoice(player.id);
+          return;
+        }
+
+        const cap=getRaidTeamCapacity(raid);
+        let targetTeam='';
+
+        for(let i=1;i<=teamCount;i++){
+          const key='team'+i;
+          const count=raid.participants.filter(p=>p.team===key).length;
+          if(count<cap){
+            targetTeam=key;
+            break;
+          }
+        }
+
+        if(!targetTeam){
+          toast('隊伍都已滿員。','bad');
+          return;
+        }
+
+        movePlayer(player.id,targetTeam);
+      }else{
+        lastTap=now;
+      }
+    },{passive:false});
+  });
+
+  document.querySelectorAll('[data-team]').forEach(zone=>{
+    zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drop-over')});
+    zone.addEventListener('dragleave',()=>zone.classList.remove('drop-over'));
+    zone.addEventListener('drop',e=>{
+      e.preventDefault();zone.classList.remove('drop-over');
+      movePlayer(dragPlayerId,zone.dataset.team);
+    });
+
+    zone.addEventListener('click',async e=>{
+      if(!mobileTeamChoicePlayerId || zone.dataset.team==='pool') return;
+
+      const raid=getRaid(activeRaidId);
+      if(!raid || raid.boss!=='闇黑龍王' || Number(raid.raidSize)!==12) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const target=zone.dataset.team;
+      const cap=getRaidTeamCapacity(raid);
+      const count=raid.participants.filter(p=>p.team===target && p.id!==mobileTeamChoicePlayerId).length;
+      if(count>=cap){
+        toast('這一隊已達人數上限，請選另一隊。','bad');
+        return;
+      }
+
+      const playerId=mobileTeamChoicePlayerId;
+      await movePlayer(playerId,target);
+
+      const latest=getRaid(activeRaidId)?.participants.find(p=>p.id===playerId);
+      if(latest?.team===target){
+        cancelMobileTeamChoice();
+      }
+    });
+  });
+}
+
+async function movePlayer(playerId,target){
+  if(!requireManager() || !playerId) return;
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  const p=raid.participants.find(x=>x.id===playerId); if(!p) return;
+
+  if(target!=='pool'){
+    const current=raid.participants.filter(x=>x.team===target && x.id!==playerId).length;
+    if(current >= getRaidTeamCapacity(raid)) return toast('這一隊已達人數上限。','bad');
+
+    if(raid.finalTime && !(p.preferences||[]).includes(raid.finalTime)){
+      const force=confirm(`「${p.name}」未勾選最終開打時間 ${formatDateTime(raid.finalTime)}。\n\n是否仍要強制安排進隊伍？`);
+      if(!force) return;
+    }
+  }
+  p.team=target;
+  try{ await saveRaid(raid); }catch(err){ console.error(err); return toast('分隊儲存失敗：'+err.message,'bad'); }
+  renderBoard();render();
+}
+
+async function clearAssignments(){
+  if(!requireManager()) return;
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  raid.participants.forEach(p=>p.team='pool');
+  try{ await saveRaid(raid); }catch(err){ console.error(err); return toast('儲存失敗：'+err.message,'bad'); }
+  renderBoard();render();
+  toast('所有玩家已退回待安排。','warn');
+}
+
+async function autoArrange(){
+  if(!requireManager()) return;
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  if(!raid.finalTime) return toast('請先鎖定最終開打時間。','bad');
+
+  const eligible=raid.participants.filter(p=>(p.preferences||[]).includes(raid.finalTime));
+  const ineligible=raid.participants.filter(p=>!(p.preferences||[]).includes(raid.finalTime));
+  eligible.sort((a,b)=>(a.joinedAt||'').localeCompare(b.joinedAt||''));
+
+  eligible.forEach(p=>p.team='pool');
+  ineligible.forEach(p=>p.team='pool');
+
+  let teamIndex=1;
+  let fill=0;
+  const tc=getRaidTeamCount(raid), cap=getRaidTeamCapacity(raid);
+  raid.teamCount=tc;
+  eligible.forEach(p=>{
+    if(teamIndex>tc) return;
+    p.team='team'+teamIndex;
+    fill++;
+    if(fill>=cap){teamIndex++;fill=0}
+  });
+  try{ await saveRaid(raid); }catch(err){ console.error(err); return toast('儲存失敗：'+err.message,'bad'); }
+  renderBoard();render();
+  const overflow=eligible.filter(p=>p.team==='pool').length;
+  toast(overflow?`已自動安排，可打最終時間者中仍有 ${overflow} 人超出容量。`:'已依最終時間自動安排。',overflow?'warn':'good');
+}
+
+async function deleteCurrentRaid(){
+  if(!requireManager()) return;
+  const raid=getRaid(activeRaidId); if(!raid) return;
+  if(!confirm(`確定刪除「${raid.boss}｜${raid.type}」整個場次？此操作無法復原。`)) return;
+  try{
+    await deleteRaidById(raid.id);
+  }catch(err){
+    console.error(err);
+    return toast('刪除失敗：' + err.message,'bad');
+  }
+  closeModal('manageModal');
+  managerSession={raidId:null,authorized:false};
+  toast('場次已刪除。','warn');
+}
+
+document.querySelectorAll('.overlay').forEach(ov=>{
+  ov.addEventListener('mousedown',e=>{
+    if(e.target===ov){
+      if(ov.id==='manageModal') closeManage();
+      else closeModal(ov.id);
+    }
+  });
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    document.querySelectorAll('.overlay.show').forEach(ov=>{
+      if(ov.id==='manageModal') closeManage();
+      else closeModal(ov.id);
+    });
+  }
+});
+
+applyInviteModeChrome();
+refreshTypeOptions();
+render();
+syncRaidsFromFirestore();
+setInterval(()=>{
+  updateForceDeleteCountdowns();
+  deleteExpiredForceRaids();
+},1000);
+</script>
+</body>
+</html>
